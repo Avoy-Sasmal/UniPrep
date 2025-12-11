@@ -1,8 +1,23 @@
-import OpenAI from 'openai';
+// Load environment variables before instantiating clients to avoid missing key errors
+import 'dotenv/config';
+import axios from "axios";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+const client = axios.create({
+  baseURL: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
+  headers: {
+    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+    "Content-Type": "application/json",
+  },
 });
+
+export async function chat(messages, options = {}) {
+  const { data } = await client.post("/chat/completions", {
+    model: process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b",
+    messages,
+    ...options,
+  });
+  return data;
+}
 
 /**
  * Base prompt template builder
@@ -68,12 +83,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.7,
       max_tokens: styleProfile.maxWordCount ? Math.min(styleProfile.maxWordCount * 2, 4000) : 3000
     });
@@ -117,12 +130,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.7,
       max_tokens: Math.min(wordCount * 2, 4000)
     });
@@ -167,12 +178,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.7,
       max_tokens: slideCount * 200
     });
@@ -215,12 +224,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.5,
       max_tokens: 2000
     });
@@ -271,12 +278,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.7,
       max_tokens: 3000
     });
@@ -321,12 +326,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.5,
       max_tokens: 2000
     });
@@ -376,12 +379,10 @@ Output format as JSON:
 }`;
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4",
-      messages: [
-        { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
-        { role: "user", content: prompt }
-      ],
+    const completion = await chat([
+      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "user", content: prompt }
+    ], {
       temperature: 0.7,
       max_tokens: 4000
     });
