@@ -12,7 +12,7 @@ import quizRoutes from './routes/quiz.js';
 import sessionRoutes from './routes/sessions.js';
 import communityRoutes from './routes/community.js';
 import dotenv from 'dotenv';
-import connectDB from './db/db.js';
+import connectDB from './config/db.js';
 dotenv.config();
 
 const app = express();
