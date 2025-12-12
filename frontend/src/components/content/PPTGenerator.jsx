@@ -21,7 +21,12 @@ const PPTGenerator = ({ subjectId }) => {
       });
       setGeneratedContent(response.data);
     } catch (error) {
-      alert('Failed to generate PPT: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+        alert('AI service is not properly configured. Please contact the administrator.');
+      } else {
+        alert('Failed to generate PPT: ' + errorMessage);
+      }
     } finally {
       setLoading(false);
     }

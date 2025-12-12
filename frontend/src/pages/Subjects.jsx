@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus, BookOpen, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../services/api';
 
 const Subjects = () => {
@@ -83,12 +84,12 @@ const Subjects = () => {
                   <Trash2 size={20} />
                 </button>
               </div>
-              <a
-                href={`/subjects/${subject._id}`}
+              <Link
+                to={`/subjects/${subject._id}`}
                 className="text-blue-600 hover:text-blue-700 font-medium"
               >
                 Open Workspace →
-              </a>
+              </Link>
             </div>
           ))}
         </div>

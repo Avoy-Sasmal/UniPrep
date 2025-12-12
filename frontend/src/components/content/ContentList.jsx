@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FileText, Eye, Trash2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 
 const ContentList = ({ subjectId }) => {
@@ -84,12 +85,12 @@ const ContentList = ({ subjectId }) => {
                   </p>
                 </div>
                 <div className="flex gap-2">
-                  <a
-                    href={`/focus/${content.type}/${content._id}`}
+                  <Link
+                    to={`/focus/${content.type}/${content._id}`}
                     className="text-blue-600 hover:text-blue-700"
                   >
                     <Eye size={20} />
-                  </a>
+                  </Link>
                   <button
                     onClick={() => handleDelete(content._id)}
                     className="text-red-600 hover:text-red-700"

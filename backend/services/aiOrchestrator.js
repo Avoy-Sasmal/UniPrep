@@ -1,22 +1,378 @@
 // Load environment variables before instantiating clients to avoid missing key errors
 import 'dotenv/config';
-import axios from "axios";
+import { OpenRouter } from "@openrouter/sdk";
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
+import { readFileSync } from 'fs';
 
-const client = axios.create({
-  baseURL: process.env.OPENROUTER_BASE_URL || "https://openrouter.ai/api/v1",
-  headers: {
-    Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-    "Content-Type": "application/json",
-  },
-});
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Check if .env file exists
+const envPath = join(__dirname, '..', '.env');
+const envExists = existsSync(envPath);
+
+// Validate API key on startup
+let API_KEY = process.env.OPENROUTER_API_KEY;
+
+// Trim whitespace if key exists
+if (API_KEY) {
+  API_KEY = API_KEY.trim();
+}
+
+// Initialize OpenRouter client
+let openrouter = null;
+
+if (API_KEY) {
+  try {
+    openrouter = new OpenRouter({
+      apiKey: API_KEY
+    });
+    // Mask the key for security (show first 10 and last 4 chars)
+    const maskedKey = API_KEY.substring(0, 10) + '...' + API_KEY.substring(API_KEY.length - 4);
+    console.log(`✓ OpenRouter API key loaded: ${maskedKey}`);
+    
+    // Test the API key on startup (async, don't block)
+    setTimeout(async () => {
+      try {
+        const testResult = await testAPIKey();
+        if (testResult.valid) {
+          console.log('✓ OpenRouter API key verified and working');
+        } else {
+          console.error('\n❌ OpenRouter API key test FAILED:');
+          console.error(`   Error: ${testResult.error}`);
+          
+          // Show diagnostics if available
+          if (testResult.diagnostics) {
+            console.error('\n📊 Key Diagnostics:');
+            console.error(`   Length: ${testResult.diagnostics.keyLength} characters`);
+            console.error(`   Starts with: ${testResult.diagnostics.keyPrefix}...`);
+            if (testResult.diagnostics.hasSpaces) {
+              console.error('   ⚠️  Key contains SPACES - remove them!');
+            }
+            if (testResult.diagnostics.hasQuotes) {
+              console.error('   ⚠️  Key contains QUOTES - remove them from .env file!');
+            }
+            if (!testResult.diagnostics.startsWithCorrectPrefix) {
+              console.error('   ⚠️  Key format looks wrong - should start with "sk-or-v1-" or "sk-"');
+            }
+            if (testResult.diagnostics.keyLength < 50) {
+              console.error('   ⚠️  Key is too short - you may not have copied the entire key!');
+            }
+          }
+          
+          if (testResult.statusCode) {
+            console.error(`   HTTP Status: ${testResult.statusCode}`);
+          }
+          if (testResult.detailedError) {
+            console.error(`   API Response: ${testResult.detailedError}`);
+          }
+          
+          console.error('\n🔧 How to Fix:');
+          console.error('   1. Go to https://openrouter.ai/keys');
+          console.error('   2. Sign in (or create free account)');
+          console.error('   3. Delete old keys and create a NEW one');
+          console.error('   4. Copy the ENTIRE key (100+ characters)');
+          console.error('   5. Update backend/.env file: OPENROUTER_API_KEY=your-key-here');
+          console.error('   6. NO quotes, NO spaces around = sign');
+          console.error('   7. Restart server completely');
+          console.error('\n   See backend/DEBUG_API_KEY.md for detailed debugging steps\n');
+        }
+      } catch (err) {
+        console.warn('⚠️  Could not test API key on startup:', err.message);
+      }
+    }, 2000); // Wait 2 seconds after server starts
+  } catch (error) {
+    console.error('❌ Failed to initialize OpenRouter client:', error.message);
+  }
+} else {
+  console.error('\n❌ ERROR: OPENROUTER_API_KEY not found in environment variables.');
+  if (!envExists) {
+    console.error(`   .env file not found at: ${envPath}`);
+    console.error('   Please create a .env file in the backend directory.');
+  } else {
+    console.error(`   .env file exists at: ${envPath}`);
+    try {
+      const envContent = readFileSync(envPath, 'utf8');
+      if (envContent.includes('OPENROUTER')) {
+        console.error('   Found OPENROUTER in .env file, but key may be empty or commented out.');
+      } else {
+        console.error('   OPENROUTER_API_KEY is not set in the .env file.');
+      }
+    } catch (err) {
+      console.error('   Could not read .env file.');
+    }
+  }
+  console.error('\n   To fix this:');
+  console.error('   1. Create or edit backend/.env file');
+  console.error('   2. Add: OPENROUTER_API_KEY=your-api-key-here');
+  console.error('   3. Get your API key from: https://openrouter.ai/keys');
+  console.error('   4. Make sure there are NO spaces around the = sign');
+  console.error('   5. Do NOT use quotes around the API key value');
+  console.error('   6. Restart the server\n');
+}
+
+// Test API key function with detailed diagnostics
+export async function testAPIKey() {
+  if (!API_KEY || !openrouter) {
+    return { 
+      valid: false, 
+      error: 'API key not configured or OpenRouter client not initialized',
+      diagnostics: {
+        keyLength: API_KEY ? API_KEY.length : 0,
+        keyPrefix: API_KEY ? API_KEY.substring(0, 10) : 'none',
+        keyExists: !!API_KEY
+      }
+    };
+  }
+  
+  // Diagnostic information
+  const diagnostics = {
+    keyLength: API_KEY.length,
+    keyPrefix: API_KEY.substring(0, 10),
+    keySuffix: API_KEY.substring(API_KEY.length - 4),
+    keyExists: true,
+    hasSpaces: API_KEY.includes(' '),
+    hasQuotes: API_KEY.includes('"') || API_KEY.includes("'"),
+    startsWithCorrectPrefix: API_KEY.startsWith('sk-or-v1-') || API_KEY.startsWith('sk-')
+  };
+  
+  // Check for common issues
+  if (API_KEY.length < 50) {
+    return { 
+      valid: false, 
+      error: 'API key is too short. OpenRouter keys are typically 100+ characters long.',
+      diagnostics 
+    };
+  }
+  
+  if (diagnostics.hasSpaces) {
+    return { 
+      valid: false, 
+      error: 'API key contains spaces. Remove all spaces from the key.',
+      diagnostics 
+    };
+  }
+  
+  if (diagnostics.hasQuotes) {
+    return { 
+      valid: false, 
+      error: 'API key contains quotes. Remove quotes from your .env file.',
+      diagnostics 
+    };
+  }
+  
+  if (!diagnostics.startsWithCorrectPrefix) {
+    return { 
+      valid: false, 
+      error: 'API key format looks incorrect. OpenRouter keys start with "sk-or-v1-" or "sk-"',
+      diagnostics 
+    };
+  }
+  
+  try {
+    console.log('[API Test] Testing API key...');
+    
+    // Test with a simple streaming request
+    const stream = await openrouter.chat.send({
+      model: "openai/gpt-oss-20b:free",
+      messages: [{ role: "user", content: "Say 'test' if you can read this." }],
+      max_tokens: 10,
+      stream: true,
+      streamOptions: {
+        includeUsage: true
+      }
+    });
+    
+    // Collect the streamed response
+    let hasContent = false;
+    for await (const chunk of stream) {
+      const content = chunk.choices?.[0]?.delta?.content;
+      if (content) {
+        hasContent = true;
+        break; // We just need to know it works
+      }
+    }
+    
+    if (hasContent) {
+      return { 
+        valid: true, 
+        message: 'API key is valid and working!',
+        diagnostics 
+      };
+    }
+    
+    return { 
+      valid: false, 
+      error: 'Invalid response format from API',
+      diagnostics 
+    };
+  } catch (error) {
+    let errorDetails = error.message;
+    let statusCode = null;
+    
+    // OpenRouter SDK may throw errors differently
+    if (error.status || error.statusCode) {
+      statusCode = error.status || error.statusCode;
+    } else if (error.response) {
+      statusCode = error.response.status;
+      const errorData = error.response.data;
+      errorDetails = errorData?.error?.message || error.message;
+    }
+    
+    if (statusCode === 401) {
+      if (errorDetails.includes('User not found') || errorDetails.includes('user not found')) {
+        return { 
+          valid: false, 
+          error: 'API key is invalid - the key does not exist in OpenRouter\'s system. You need to create a NEW key at https://openrouter.ai/keys',
+          diagnostics,
+          statusCode,
+          detailedError: errorDetails
+        };
+      }
+      return { 
+        valid: false, 
+        error: 'API key authentication failed. The key may be invalid, expired, or revoked.',
+        diagnostics,
+        statusCode,
+        detailedError: errorDetails
+      };
+    } else if (statusCode === 402) {
+      return { 
+        valid: false, 
+        error: 'Insufficient credits in your OpenRouter account. Add credits at https://openrouter.ai/',
+        diagnostics,
+        statusCode
+      };
+    } else if (statusCode === 429) {
+      return { 
+        valid: false, 
+        error: 'Rate limit exceeded. Wait a few minutes and try again.',
+        diagnostics,
+        statusCode
+      };
+    }
+    
+    return { 
+      valid: false, 
+      error: errorDetails,
+      diagnostics,
+      statusCode: statusCode || 'unknown',
+      fullError: error.message
+    };
+  }
+}
 
 export async function chat(messages, options = {}) {
-  const { data } = await client.post("/chat/completions", {
-    model: process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b",
-    messages,
-    ...options,
-  });
-  return data;
+  if (!API_KEY || !openrouter) {
+    const errorMsg = 'OpenRouter API key is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. Get your key from https://openrouter.ai/keys';
+    console.error(`\n${errorMsg}\n`);
+    throw new Error(errorMsg);
+  }
+  
+  try {
+    const model = process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
+    
+    // Log request for debugging (without sensitive data)
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[AI] Requesting model: ${model}, messages: ${messages.length}`);
+    }
+    
+    // Use streaming to get the response, then collect it
+    const stream = await openrouter.chat.send({
+      model,
+      messages,
+      ...options,
+      stream: true,
+      streamOptions: {
+        includeUsage: true
+      }
+    });
+    
+    // Collect the streamed response
+    let fullResponse = "";
+    let usage = null;
+    
+    for await (const chunk of stream) {
+      const content = chunk.choices?.[0]?.delta?.content;
+      if (content) {
+        fullResponse += content;
+      }
+      
+      // Usage information comes in the final chunk
+      if (chunk.usage) {
+        usage = chunk.usage;
+      }
+    }
+    
+    // Return in the same format as before for compatibility
+    return {
+      choices: [{
+        message: {
+          content: fullResponse,
+          role: "assistant"
+        }
+      }],
+      usage: usage
+    };
+  } catch (error) {
+    // Provide more helpful error messages
+    let status = null;
+    let errorMessage = error.message;
+    
+    if (error.status || error.statusCode) {
+      status = error.status || error.statusCode;
+    } else if (error.response) {
+      status = error.response.status;
+      const errorData = error.response.data;
+      errorMessage = errorData?.error?.message || error.message;
+    }
+    
+    console.error('\n❌ OpenRouter API Error:');
+    if (status) {
+      console.error(`   Status: ${status}`);
+    }
+    console.error(`   Message: ${errorMessage}`);
+    
+    if (status === 401) {
+      let detailedMsg = '';
+      if (errorMessage.includes('User not found') || errorMessage.includes('user not found')) {
+        detailedMsg = `OpenRouter API key is INVALID or the account was deleted.\n\n` +
+          `The error "User not found" means your API key doesn't exist or is no longer valid.\n\n` +
+          `SOLUTION:\n` +
+          `1. Go to https://openrouter.ai/keys\n` +
+          `2. Sign in to your account (or create a new one if needed)\n` +
+          `3. Delete the old API key if it exists\n` +
+          `4. Create a NEW API key\n` +
+          `5. Copy the ENTIRE new key (it's very long, starts with sk-or-v1-...)\n` +
+          `6. Update backend/.env file: OPENROUTER_API_KEY=your-new-key-here\n` +
+          `7. Make sure NO quotes, NO spaces around the = sign\n` +
+          `8. Restart the server completely\n\n` +
+          `If you don't have an OpenRouter account:\n` +
+          `- Sign up at https://openrouter.ai/\n` +
+          `- You get free credits to start\n` +
+          `- Create an API key and add it to your .env file`;
+      } else {
+        detailedMsg = `OpenRouter API authentication failed. Your API key may be invalid or expired.\n\n` +
+          `Please:\n` +
+          `1. Check your API key at: https://openrouter.ai/keys\n` +
+          `2. Verify it's correctly set in backend/.env as OPENROUTER_API_KEY\n` +
+          `3. Make sure there are no extra spaces or quotes around the key\n` +
+          `4. Try creating a NEW API key if the current one doesn't work\n` +
+          `5. Restart the server after updating the .env file`;
+      }
+      throw new Error(detailedMsg);
+    } else if (status === 429) {
+      throw new Error('OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.');
+    } else if (status === 402) {
+      throw new Error('OpenRouter API: Insufficient credits. Please add credits to your account at https://openrouter.ai/');
+    } else if (status === 400) {
+      throw new Error(`OpenRouter API: Bad request - ${errorMessage}`);
+    } else {
+      throw new Error(`OpenRouter API error${status ? ` (${status})` : ''}: ${errorMessage}`);
+    }
+  }
 }
 
 /**
@@ -92,10 +448,32 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      // Remove markdown code blocks if present
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      // Return a fallback structure
+      parsedResponse = {
+        sections: [{
+          title: 'Generated Content',
+          content: response
+        }]
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate notes. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate notes: ${error.message}`);
   }
 };
 
@@ -139,10 +517,31 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      parsedResponse = {
+        sections: [{
+          title: 'Generated Content',
+          content: response
+        }],
+        references: []
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate report. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate report: ${error.message}`);
   }
 };
 
@@ -187,10 +586,31 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      parsedResponse = {
+        slides: [{
+          title: 'Generated Content',
+          bullets: [response],
+          speakerNotes: ''
+        }]
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate PPT content. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate PPT content: ${error.message}`);
   }
 };
 
@@ -233,10 +653,27 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      parsedResponse = {
+        units: []
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate exam blueprint. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate exam blueprint: ${error.message}`);
   }
 };
 
@@ -287,10 +724,29 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      parsedResponse = {
+        days: [],
+        bufferDays: 0,
+        mockTestDays: []
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate revision planner. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate revision planner: ${error.message}`);
   }
 };
 
@@ -335,10 +791,29 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      parsedResponse = {
+        keyPoints: [],
+        formulae: [],
+        definitions: []
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate revision sheets. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate revision sheets: ${error.message}`);
   }
 };
 
@@ -388,10 +863,26 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    return JSON.parse(response);
+    
+    // Try to parse JSON, handle markdown code blocks
+    let parsedResponse;
+    try {
+      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      parsedResponse = JSON.parse(cleanedResponse);
+    } catch (parseError) {
+      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
+      parsedResponse = {
+        questions: []
+      };
+    }
+    
+    return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
-    throw new Error('Failed to generate mock paper. Please try again.');
+    // Re-throw the original error if it's an API key issue
+    if (error.message.includes('API key') || error.message.includes('authentication')) {
+      throw error;
+    }
+    throw new Error(`Failed to generate mock paper: ${error.message}`);
   }
 };
-

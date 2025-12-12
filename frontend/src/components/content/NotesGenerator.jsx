@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import api from '../../services/api';
 
 const NotesGenerator = ({ subjectId }) => {
@@ -20,7 +21,12 @@ const NotesGenerator = ({ subjectId }) => {
       });
       setGeneratedContent(response.data);
     } catch (error) {
-      alert('Failed to generate notes: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+        alert('AI service is not properly configured. Please contact the administrator.');
+      } else {
+        alert('Failed to generate notes: ' + errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -82,12 +88,12 @@ const NotesGenerator = ({ subjectId }) => {
             ))}
           </div>
           <div className="mt-4 flex gap-2">
-            <a
-              href={`/focus/notes/${generatedContent._id}`}
+            <Link
+              to={`/focus/notes/${generatedContent._id}`}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               Open in Focus Mode
-            </a>
+            </Link>
           </div>
         </div>
       )}

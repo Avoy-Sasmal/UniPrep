@@ -51,13 +51,21 @@ npm run install-all
 
 Backend (`backend/.env`):
 ```
-PORT=5000
+PORT=8000
 MONGODB_URI=your-mongodb-connection-string
 JWT_SECRET=your-secret-key
 JWT_REFRESH_SECRET=your-refresh-secret-key
-OPENAI_API_KEY=your-openai-api-key
+OPENROUTER_API_KEY=your-openrouter-api-key
+OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+OPENROUTER_MODEL=openai/gpt-4o-mini
 NODE_ENV=development
+BACKEND_URL=http://localhost:8000
 ```
+
+**Important**: To use AI features, you need an OpenRouter API key:
+1. Sign up at https://openrouter.ai/
+2. Get your API key from https://openrouter.ai/keys
+3. Add it to your `backend/.env` file as `OPENROUTER_API_KEY`
 
 Frontend (`frontend/.env`):
 ```

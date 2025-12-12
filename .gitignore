@@ -35,3 +35,6 @@ coverage/
 *.pem
 .cache/
 
+SETUP_AI.md 
+QUICK_FIX.md 
+DEBUG_API_KEY.md 
