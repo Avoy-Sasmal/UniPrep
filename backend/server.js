@@ -53,7 +53,7 @@ app.get('/api/test-ai-key', async (req, res) => {
   try {
     const { testAPIKey } = await import('./services/aiOrchestrator.js');
     const result = await testAPIKey();
-    
+
     // Log diagnostics for debugging
     if (!result.valid && result.diagnostics) {
       console.log('\n📊 API Key Diagnostics:');
@@ -71,11 +71,11 @@ app.get('/api/test-ai-key', async (req, res) => {
       }
       console.log('');
     }
-    
+
     res.json(result);
   } catch (error) {
-    res.status(500).json({ 
-      valid: false, 
+    res.status(500).json({
+      valid: false,
       error: error.message,
       diagnostics: { error: 'Failed to test API key' }
     });
