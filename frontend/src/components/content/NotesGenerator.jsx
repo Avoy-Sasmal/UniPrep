@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
-import api from '../services/api';
+import { Link } from 'react-router-dom';
+import api from '../../services/api';
 
 const NotesGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
@@ -82,12 +83,12 @@ const NotesGenerator = ({ subjectId }) => {
             ))}
           </div>
           <div className="mt-4 flex gap-2">
-            <a
-              href={`/focus/notes/${generatedContent._id}`}
+            <Link
+              to={`/focus/notes/${generatedContent._id}`}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
             >
               Open in Focus Mode
-            </a>
+            </Link>
           </div>
         </div>
       )}

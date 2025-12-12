@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { GraduationCap, Calendar, FileText, BookOpen } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 import BlueprintView from './BlueprintView';
 import PlannerView from './PlannerView';
 import RapidSheetsGenerator from './RapidSheetsGenerator';

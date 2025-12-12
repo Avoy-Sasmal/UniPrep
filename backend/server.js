@@ -1,6 +1,6 @@
 import express from 'express';
-import mongoose from 'mongoose';
 import cors from 'cors';
+import axios from 'axios';
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import subjectRoutes from './routes/subjects.js';
@@ -16,7 +16,7 @@ import connectDB from './config/db.js';
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 8000;
 
 // Middleware
 app.use(cors());
@@ -38,10 +38,32 @@ app.use('/api/quiz', quizRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/community', communityRoutes);
 
+// Normal Route
+app.get('/', (req, res) => {
+  res.send('Welcome to the UniPrep Copilot API');
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'UniPrep Copilot API is running' });
 });
+
+// Pinging the server to keep it awake
+// Endpoint to ping
+app.get('/ping', (req, res) => {
+  res.status(200).send('Pong!');
+});
+
+// Function to ping the server every 5 minutes
+function pingServer() {
+  const url = `${process.env.BACKEND_URL}/ping` || `http://localhost:${PORT}/ping`;
+  axios.get(url)
+    .then(() => console.log('Pinged server at', new Date().toLocaleString()))
+    .catch(err => console.error('Error pinging server:', err.message));
+}
+
+// Ping every 12 minutes (720,000 milliseconds)
+setInterval(pingServer, 60000);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Upload, FileText, X } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const ContextManager = ({ subjectId }) => {
   const [contexts, setContexts] = useState([]);
