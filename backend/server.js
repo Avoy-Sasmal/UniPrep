@@ -48,6 +48,40 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'UniPrep Copilot API is running' });
 });
 
+// AI API key test endpoint with detailed diagnostics
+app.get('/api/test-ai-key', async (req, res) => {
+  try {
+    const { testAPIKey } = await import('./services/aiOrchestrator.js');
+    const result = await testAPIKey();
+    
+    // Log diagnostics for debugging
+    if (!result.valid && result.diagnostics) {
+      console.log('\n📊 API Key Diagnostics:');
+      console.log(`   Length: ${result.diagnostics.keyLength} characters`);
+      console.log(`   Starts with: ${result.diagnostics.keyPrefix}...`);
+      console.log(`   Ends with: ...${result.diagnostics.keySuffix}`);
+      console.log(`   Has spaces: ${result.diagnostics.hasSpaces}`);
+      console.log(`   Has quotes: ${result.diagnostics.hasQuotes}`);
+      console.log(`   Valid prefix: ${result.diagnostics.startsWithCorrectPrefix}`);
+      if (result.statusCode) {
+        console.log(`   HTTP Status: ${result.statusCode}`);
+      }
+      if (result.detailedError) {
+        console.log(`   API Error: ${result.detailedError}`);
+      }
+      console.log('');
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ 
+      valid: false, 
+      error: error.message,
+      diagnostics: { error: 'Failed to test API key' }
+    });
+  }
+});
+
 // Pinging the server to keep it awake
 // Endpoint to ping
 app.get('/ping', (req, res) => {

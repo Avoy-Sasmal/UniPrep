@@ -21,7 +21,12 @@ const NotesGenerator = ({ subjectId }) => {
       });
       setGeneratedContent(response.data);
     } catch (error) {
-      alert('Failed to generate notes: ' + (error.response?.data?.message || error.message));
+      const errorMessage = error.response?.data?.message || error.message;
+      if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+        alert('AI service is not properly configured. Please contact the administrator.');
+      } else {
+        alert('Failed to generate notes: ' + errorMessage);
+      }
     } finally {
       setLoading(false);
     }

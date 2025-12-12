@@ -22,6 +22,39 @@ const buildUserContext = (user, subject) => ({
   subject: subject.name
 });
 
+const getOrCreateStyleProfile = async (userId) => {
+  const user = await User.findById(userId);
+  let styleProfile = null;
+  
+  if (user.activeStyleProfileId) {
+    styleProfile = await AnswerStyle.findById(user.activeStyleProfileId);
+  }
+  
+  if (!styleProfile) {
+    const userStyles = await AnswerStyle.find({ userId });
+    if (userStyles.length > 0) {
+      styleProfile = userStyles[0];
+      user.activeStyleProfileId = styleProfile._id;
+      await user.save();
+    } else {
+      styleProfile = new AnswerStyle({
+        userId,
+        name: 'Default Style',
+        sections: ['Definition', 'Explanation', 'Key Points', 'Conclusion'],
+        tone: 'formal_exam',
+        maxWordCount: 500,
+        approximateLength: 'medium',
+        isDefault: true
+      });
+      await styleProfile.save();
+      user.activeStyleProfileId = styleProfile._id;
+      await user.save();
+    }
+  }
+  
+  return styleProfile;
+};
+
 export const generateExamBlueprint = async (req, res) => {
   try {
     const { subjectId } = req.body;
@@ -55,6 +88,11 @@ export const generateExamBlueprint = async (req, res) => {
 
     res.json(examPlan);
   } catch (error) {
+    if (error.message.includes('API key') || error.message.includes('authentication failed')) {
+      return res.status(500).json({ 
+        message: 'AI service configuration error. Please check your OPENROUTER_API_KEY in the .env file.' 
+      });
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -90,6 +128,11 @@ export const generateRevisionPlanner = async (req, res) => {
 
     res.json(examPlan);
   } catch (error) {
+    if (error.message.includes('API key') || error.message.includes('authentication failed')) {
+      return res.status(500).json({ 
+        message: 'AI service configuration error. Please check your OPENROUTER_API_KEY in the .env file.' 
+      });
+    }
     res.status(500).json({ message: error.message });
   }
 };
@@ -103,10 +146,7 @@ export const generateRapidRevisionSheets = async (req, res) => {
       return res.status(404).json({ message: 'Subject not found' });
     }
 
-    const styleProfile = await AnswerStyle.findById(user.activeStyleProfileId);
-    if (!styleProfile) {
-      return res.status(400).json({ message: 'No active style profile found' });
-    }
+    const styleProfile = await getOrCreateStyleProfile(req.userId);
 
     const contexts = await Context.find({ userId: req.userId, subjectId });
     const contextData = buildContextData(contexts);
@@ -150,10 +190,7 @@ export const generateMockPaper = async (req, res) => {
       return res.status(404).json({ message: 'Subject not found' });
     }
 
-    const styleProfile = await AnswerStyle.findById(user.activeStyleProfileId);
-    if (!styleProfile) {
-      return res.status(400).json({ message: 'No active style profile found' });
-    }
+    const styleProfile = await getOrCreateStyleProfile(req.userId);
 
     const contexts = await Context.find({ userId: req.userId, subjectId });
     const contextData = buildContextData(contexts);

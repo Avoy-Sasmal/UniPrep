@@ -30,10 +30,39 @@ const getUserSubjectAndStyle = async (userId, subjectId) => {
   if (!subject) {
     throw createError('Subject not found', 404);
   }
-  const styleProfile = await AnswerStyle.findById(user.activeStyleProfileId);
-  if (!styleProfile) {
-    throw createError('No active style profile found', 400);
+  
+  let styleProfile = null;
+  
+  // Check if user has an active style profile
+  if (user.activeStyleProfileId) {
+    styleProfile = await AnswerStyle.findById(user.activeStyleProfileId);
   }
+  
+  // If no active style profile, check if user has any style profiles
+  if (!styleProfile) {
+    const userStyles = await AnswerStyle.find({ userId });
+    if (userStyles.length > 0) {
+      // Activate the first available style profile
+      styleProfile = userStyles[0];
+      user.activeStyleProfileId = styleProfile._id;
+      await user.save();
+    } else {
+      // Create a default style profile for the user
+      styleProfile = new AnswerStyle({
+        userId,
+        name: 'Default Style',
+        sections: ['Definition', 'Explanation', 'Key Points', 'Conclusion'],
+        tone: 'formal_exam',
+        maxWordCount: 500,
+        approximateLength: 'medium',
+        isDefault: true
+      });
+      await styleProfile.save();
+      user.activeStyleProfileId = styleProfile._id;
+      await user.save();
+    }
+  }
+  
   return { user, subject, styleProfile };
 };
 
@@ -108,6 +137,32 @@ export const generateNotesContent = async (req, res) => {
     await content.save();
     res.status(201).json(content);
   } catch (error) {
+    // Provide more helpful error messages
+    const errorMessage = error.message || 'Unknown error occurred';
+    
+    if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
+      return res.status(500).json({ 
+        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.' 
+      });
+    }
+    if (errorMessage.includes('authentication failed') || errorMessage.includes('401')) {
+      return res.status(500).json({ 
+        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
+      });
+    }
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+      return res.status(429).json({ 
+        message: 'AI service rate limit exceeded. Please try again in a few minutes.' 
+      });
+    }
+    if (errorMessage.includes('credits') || errorMessage.includes('402')) {
+      return res.status(402).json({ 
+        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/' 
+      });
+    }
+    
+    // Log the full error for debugging
+    console.error('Content generation error:', errorMessage);
     handleControllerError(res, error);
   }
 };
@@ -163,6 +218,32 @@ export const generateReportContent = async (req, res) => {
     await content.save();
     res.status(201).json(content);
   } catch (error) {
+    // Provide more helpful error messages
+    const errorMessage = error.message || 'Unknown error occurred';
+    
+    if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
+      return res.status(500).json({ 
+        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.' 
+      });
+    }
+    if (errorMessage.includes('authentication failed') || errorMessage.includes('401')) {
+      return res.status(500).json({ 
+        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
+      });
+    }
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+      return res.status(429).json({ 
+        message: 'AI service rate limit exceeded. Please try again in a few minutes.' 
+      });
+    }
+    if (errorMessage.includes('credits') || errorMessage.includes('402')) {
+      return res.status(402).json({ 
+        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/' 
+      });
+    }
+    
+    // Log the full error for debugging
+    console.error('Content generation error:', errorMessage);
     handleControllerError(res, error);
   }
 };
@@ -211,6 +292,32 @@ export const generatePPTContent = async (req, res) => {
     await content.save();
     res.status(201).json(content);
   } catch (error) {
+    // Provide more helpful error messages
+    const errorMessage = error.message || 'Unknown error occurred';
+    
+    if (errorMessage.includes('API key') || errorMessage.includes('not configured')) {
+      return res.status(500).json({ 
+        message: 'AI service is not configured. Please set OPENROUTER_API_KEY in your backend/.env file. See SETUP_AI.md for instructions.' 
+      });
+    }
+    if (errorMessage.includes('authentication failed') || errorMessage.includes('401')) {
+      return res.status(500).json({ 
+        message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
+      });
+    }
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+      return res.status(429).json({ 
+        message: 'AI service rate limit exceeded. Please try again in a few minutes.' 
+      });
+    }
+    if (errorMessage.includes('credits') || errorMessage.includes('402')) {
+      return res.status(402).json({ 
+        message: 'Insufficient credits in your OpenRouter account. Please add credits at https://openrouter.ai/' 
+      });
+    }
+    
+    // Log the full error for debugging
+    console.error('Content generation error:', errorMessage);
     handleControllerError(res, error);
   }
 };
