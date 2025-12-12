@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Presentation } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const PPTGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({

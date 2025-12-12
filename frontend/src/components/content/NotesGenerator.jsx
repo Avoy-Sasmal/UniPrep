@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Sparkles } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const NotesGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({

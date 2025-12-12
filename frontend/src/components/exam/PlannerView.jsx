@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Calendar, Sparkles } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const PlannerView = ({ subjectId, examPlan, onUpdate }) => {
   const [formData, setFormData] = useState({

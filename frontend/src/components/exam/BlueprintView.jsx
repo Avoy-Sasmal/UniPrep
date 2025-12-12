@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Sparkles, TrendingUp } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const BlueprintView = ({ subjectId, examPlan, onUpdate }) => {
   const [loading, setLoading] = useState(false);

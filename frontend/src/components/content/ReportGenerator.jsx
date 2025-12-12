@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { FileCheck } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const ReportGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({

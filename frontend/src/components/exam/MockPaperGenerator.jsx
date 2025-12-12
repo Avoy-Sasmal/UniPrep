@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { BookOpen, Sparkles } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 const MockPaperGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
