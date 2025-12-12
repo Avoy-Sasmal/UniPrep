@@ -23,7 +23,26 @@ const PostDetail = () => {
   const fetchPost = async () => {
     try {
       const response = await api.get(`/community/posts/${id}`);
-      setPost(response.data);
+      const postData = response.data;
+      
+      // Parse content if it's a string
+      if (typeof postData.content === 'string') {
+        try {
+          postData.content = JSON.parse(postData.content);
+        } catch (e) {
+          // If parsing fails, try to extract JSON from the string
+          const jsonMatch = postData.content.match(/\{[\s\S]*\}/);
+          if (jsonMatch) {
+            try {
+              postData.content = JSON.parse(jsonMatch[0]);
+            } catch (e2) {
+              console.error('Failed to parse content:', e2);
+            }
+          }
+        }
+      }
+      
+      setPost(postData);
     } catch (error) {
       console.error('Failed to fetch post:', error);
     } finally {
@@ -143,31 +162,124 @@ const PostDetail = () => {
           </div>
 
           <div className="prose max-w-none mb-8">
-            {post.type === 'ppt' && post.content.slides ? (
-              <div className="space-y-6">
-                {post.content.slides.map((slide, index) => (
-                  <div key={index} className="border-l-4 border-blue-500 pl-4">
-                    <h3 className="text-lg font-semibold mb-2">Slide {index + 1}: {slide.title}</h3>
-                    <ul className="list-disc list-inside">
-                      {slide.bullets?.map((bullet, bulletIndex) => (
-                        <li key={bulletIndex}>{bullet}</li>
-                      ))}
-                    </ul>
+            {(() => {
+              // Ensure content is an object
+              let content = post.content;
+              if (typeof content === 'string') {
+                try {
+                  content = JSON.parse(content);
+                } catch (e) {
+                  // Try to extract JSON from string
+                  const jsonMatch = content.match(/\{[\s\S]*\}/);
+                  if (jsonMatch) {
+                    try {
+                      content = JSON.parse(jsonMatch[0]);
+                    } catch (e2) {
+                      return <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded">{content}</pre>;
+                    }
+                  } else {
+                    return <pre className="whitespace-pre-wrap bg-gray-50 p-4 rounded">{content}</pre>;
+                  }
+                }
+              }
+
+              // Render based on content structure
+              if (post.type === 'ppt' && content.slides) {
+                return (
+                  <div className="space-y-6">
+                    {content.slides.map((slide, index) => (
+                      <div key={index} className="border-l-4 border-purple-500 pl-6 py-4 bg-gray-50 rounded-lg">
+                        <h3 className="text-xl font-semibold mb-3 text-gray-800">Slide {index + 1}: {slide.title}</h3>
+                        {slide.bullets && slide.bullets.length > 0 && (
+                          <ul className="list-disc list-inside space-y-2 text-gray-700">
+                            {slide.bullets.map((bullet, bulletIndex) => (
+                              <li key={bulletIndex}>{bullet}</li>
+                            ))}
+                          </ul>
+                        )}
+                        {slide.speakerNotes && (
+                          <div className="mt-4 p-3 bg-white rounded border border-gray-200">
+                            <p className="text-sm font-medium text-gray-600 mb-1">Speaker Notes:</p>
+                            <p className="text-gray-700">{slide.speakerNotes}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : post.content.sections ? (
-              <div>
-                {post.content.sections.map((section, index) => (
-                  <div key={index} className="mb-6">
-                    <h3 className="text-lg font-semibold mb-2">{section.title}</h3>
-                    <p className="whitespace-pre-wrap">{section.content}</p>
+                );
+              } else if (content.sections && Array.isArray(content.sections)) {
+                return (
+                  <div className="space-y-6">
+                    {content.sections.map((section, index) => (
+                      <div key={index} className="border-l-4 border-blue-500 pl-6 py-4 bg-gray-50 rounded-lg">
+                        <h3 className="text-xl font-semibold mb-3 text-gray-800">{section.title}</h3>
+                        <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">{section.content}</p>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ) : (
-              <pre className="whitespace-pre-wrap">{JSON.stringify(post.content, null, 2)}</pre>
-            )}
+                );
+              } else if (content.questions && Array.isArray(content.questions)) {
+                return (
+                  <div className="space-y-6">
+                    {content.questions.map((question, index) => (
+                      <div key={index} className="border-l-4 border-green-500 pl-6 py-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-start gap-3 mb-3">
+                          <span className="text-xl font-bold text-green-600">Q{index + 1}.</span>
+                          <p className="text-lg text-gray-800 flex-1">{question.question}</p>
+                        </div>
+                        {question.answer && (
+                          <div className="ml-8 mt-4 p-4 bg-white rounded border border-gray-200">
+                            <p className="text-sm font-medium text-gray-600 mb-2">Answer:</p>
+                            <p className="text-gray-700 whitespace-pre-wrap">{question.answer}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                );
+              } else if (content.keyPoints || content.formulae || content.definitions) {
+                return (
+                  <div className="space-y-6">
+                    {content.keyPoints && content.keyPoints.length > 0 && (
+                      <div>
+                        <h3 className="text-xl font-semibold mb-3 text-gray-800">Key Points</h3>
+                        <ul className="list-disc list-inside space-y-2 text-gray-700">
+                          {content.keyPoints.map((point, index) => (
+                            <li key={index}>{point}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {content.formulae && content.formulae.length > 0 && (
+                      <div>
+                        <h3 className="text-xl font-semibold mb-3 text-gray-800">Formulae</h3>
+                        <ul className="list-disc list-inside space-y-2 text-gray-700">
+                          {content.formulae.map((formula, index) => (
+                            <li key={index}>{formula}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {content.definitions && content.definitions.length > 0 && (
+                      <div>
+                        <h3 className="text-xl font-semibold mb-3 text-gray-800">Definitions</h3>
+                        <ul className="list-disc list-inside space-y-2 text-gray-700">
+                          {content.definitions.map((definition, index) => (
+                            <li key={index}>{definition}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                );
+              } else {
+                return (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <pre className="whitespace-pre-wrap text-sm text-gray-700">{JSON.stringify(content, null, 2)}</pre>
+                  </div>
+                );
+              }
+            })()}
           </div>
 
           {/* Comments */}

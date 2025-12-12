@@ -1,6 +1,7 @@
 import User from '../models/User.js';
 import QuizAttempt from '../models/QuizAttempt.js';
 import Session from '../models/Session.js';
+import GeneratedContent from '../models/GeneratedContent.js';
 
 export const getUserProfile = async (req, res) => {
   try {
@@ -97,6 +98,21 @@ export const getUserProgress = async (req, res) => {
       totalStudyTime: Math.round((totalStudyTime / 3600000) * 100) / 100,
       totalSessions: sessions.length
     });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getRecentContent = async (req, res) => {
+  try {
+    const { limit = 5 } = req.query;
+    const contents = await GeneratedContent.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit, 10))
+      .populate('subjectId', 'name code')
+      .select('title type topic createdAt subjectId');
+    
+    res.json(contents);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

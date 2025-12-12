@@ -42,9 +42,13 @@ const useAuthStore = create((set) => ({
   fetchUser: async () => {
     try {
       const response = await api.get('/auth/me');
-      set({ user: response.data });
+      set({ user: response.data, isAuthenticated: true });
       return { success: true };
     } catch (error) {
+      // If token is invalid, clear it
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });
       return { success: false };
     }
   }

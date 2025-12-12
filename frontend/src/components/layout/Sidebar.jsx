@@ -5,7 +5,7 @@ const Sidebar = () => {
   const location = useLocation();
 
   const navItems = [
-    { path: '/', icon: Home, label: 'Dashboard' },
+    { path: '/dashboard', icon: Home, label: 'Dashboard' },
     { path: '/subjects', icon: BookOpen, label: 'Subjects' },
     { path: '/styles', icon: Palette, label: 'Answer Styles' },
     { path: '/community', icon: Users, label: 'Community' }
@@ -18,7 +18,7 @@ const Sidebar = () => {
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path || 
-              (item.path !== '/' && location.pathname.startsWith(item.path));
+              (item.path !== '/dashboard' && location.pathname.startsWith(item.path));
             
             return (
               <li key={item.path}>

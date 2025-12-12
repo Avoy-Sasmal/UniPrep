@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import useAuthStore from './store/authStore';
 import Login from './pages/Login';
+import Landing from './pages/Landing';
 import Dashboard from './pages/Dashboard';
 import Subjects from './pages/Subjects';
 import SubjectWorkspace from './pages/SubjectWorkspace';
@@ -9,6 +10,7 @@ import Styles from './pages/Styles';
 import Community from './pages/Community';
 import PostDetail from './pages/PostDetail';
 import FocusMode from './pages/FocusMode';
+import ContentView from './pages/ContentView';
 import Profile from './pages/Profile';
 import Layout from './components/layout/Layout';
 import PrivateRoute from './components/common/PrivateRoute';
@@ -25,9 +27,10 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login />} />
         <Route
-          path="/"
+          path="/dashboard"
           element={
             <PrivateRoute>
               <Layout>
@@ -73,6 +76,14 @@ function App() {
         <Route
           path="/community/:id"
           element={<PostDetail />}
+        />
+        <Route
+          path="/content/:contentId"
+          element={
+            <PrivateRoute>
+              <ContentView />
+            </PrivateRoute>
+          }
         />
         <Route
           path="/focus/:mode/:contentId"

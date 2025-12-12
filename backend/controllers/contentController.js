@@ -72,7 +72,9 @@ export const getContentsBySubject = async (req, res) => {
     const query = { userId: req.userId, subjectId: req.params.subjectId };
     if (type) query.type = type;
 
-    const contents = await GeneratedContent.find(query).sort({ createdAt: -1 });
+    const contents = await GeneratedContent.find(query)
+      .sort({ createdAt: -1 })
+      .populate('subjectId', 'name code');
     res.json(contents);
   } catch (error) {
     handleControllerError(res, error);

@@ -3,6 +3,7 @@ import CommunityVote from '../models/CommunityVote.js';
 import CommunityComment from '../models/CommunityComment.js';
 import GeneratedContent from '../models/GeneratedContent.js';
 import User from '../models/User.js';
+import pdfParse from 'pdf-parse';
 
 export const listCommunityPosts = async (req, res) => {
   try {
@@ -49,28 +50,91 @@ export const getCommunityPost = async (req, res) => {
   }
 };
 
+const extractFileContent = async (file) => {
+  if (!file) {
+    return null;
+  }
+  
+  try {
+    if (file.mimetype === 'application/pdf') {
+      const pdfData = await pdfParse(file.buffer);
+      return pdfData.text;
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || 
+               file.mimetype === 'application/msword') {
+      // For DOCX files, we'll return a placeholder message
+      // In production, you'd want to use a library like 'mammoth' or 'docx'
+      return '[DOCX file content - text extraction not implemented]';
+    } else if (file.mimetype === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' ||
+               file.mimetype === 'application/vnd.ms-powerpoint') {
+      // For PPT files
+      return '[PPT file content - text extraction not implemented]';
+    } else {
+      // Try to read as text
+      return file.buffer.toString('utf-8');
+    }
+  } catch (error) {
+    console.error('Error extracting file content:', error);
+    return null;
+  }
+};
+
 export const createCommunityPost = async (req, res) => {
   try {
     const { contentId, type, title, content, metadata } = req.body;
     const user = await User.findById(req.userId);
+    
+    let postContent = content;
+    let postType = type;
+    
+    // If file is uploaded, extract content
+    if (req.file) {
+      const extractedContent = await extractFileContent(req.file);
+      if (extractedContent) {
+        postContent = extractedContent;
+        // Determine type from file if not provided
+        if (!postType) {
+          if (req.file.mimetype.includes('pdf')) {
+            postType = 'notes'; // Default for PDF
+          } else if (req.file.mimetype.includes('presentation') || req.file.mimetype.includes('powerpoint')) {
+            postType = 'ppt';
+          } else if (req.file.mimetype.includes('word') || req.file.mimetype.includes('document')) {
+            postType = 'report';
+          }
+        }
+      }
+    }
+    
+    // Validate required metadata fields
+    const metadataObj = typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+    
+    if (!metadataObj?.subject) {
+      return res.status(400).json({ message: 'Subject is required' });
+    }
+    if (!metadataObj?.topic) {
+      return res.status(400).json({ message: 'Topic is required' });
+    }
+    if (!metadataObj?.semester) {
+      return res.status(400).json({ message: 'Semester is required' });
+    }
 
     const post = new CommunityPost({
       userId: req.userId,
-      contentId,
-      type,
-      title,
-      content,
+      contentId: contentId || null,
+      type: postType,
+      title: title || `Shared ${postType}`,
+      content: postContent || content,
       metadata: {
-        ...metadata,
-        university: metadata?.university || user.university,
-        branch: metadata?.branch || user.branch,
-        semester: metadata?.semester || user.semester
+        ...metadataObj,
+        university: metadataObj?.university || user.university,
+        branch: metadataObj?.branch || user.branch,
+        semester: parseInt(metadataObj?.semester || user.semester, 10)
       }
     });
 
     await post.save();
     res.status(201).json(post);
   } catch (error) {
+    console.error('Error creating community post:', error);
     res.status(500).json({ message: error.message });
   }
 };

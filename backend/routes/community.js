@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import {
   listCommunityPosts,
   getCommunityPost,
@@ -12,10 +13,11 @@ import {
 import { authenticateAccessToken } from '../middleware/auth.js';
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/posts', listCommunityPosts);
 router.get('/posts/:id', getCommunityPost);
-router.post('/posts', authenticateAccessToken, createCommunityPost);
+router.post('/posts', authenticateAccessToken, upload.single('file'), createCommunityPost);
 router.post('/posts/:id/vote', authenticateAccessToken, voteCommunityPost);
 router.post('/posts/:id/comment', authenticateAccessToken, commentOnPost);
 router.get('/posts/:id/comments', getPostComments);

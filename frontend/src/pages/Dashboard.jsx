@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, TrendingUp, Clock, Award } from 'lucide-react';
+import { BookOpen, TrendingUp, Clock, Award, FileText } from 'lucide-react';
 import api from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const Dashboard = () => {
   const [stats, setStats] = useState(null);
   const [recentSessions, setRecentSessions] = useState([]);
+  const [recentContent, setRecentContent] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,13 +16,15 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const [progressRes, sessionsRes] = await Promise.all([
+      const [progressRes, sessionsRes, contentRes] = await Promise.all([
         api.get('/users/progress'),
-        api.get('/sessions?limit=5')
+        api.get('/sessions?limit=5'),
+        api.get('/users/recent-content?limit=5')
       ]);
 
       setStats(progressRes.data);
       setRecentSessions(sessionsRes.data);
+      setRecentContent(contentRes.data);
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
     } finally {
@@ -105,6 +108,47 @@ const Dashboard = () => {
         </div>
       )}
 
+      {/* Recent Generated Content */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h2 className="text-xl font-semibold mb-4">Recently Generated Content</h2>
+        {recentContent.length > 0 ? (
+          <div className="space-y-3">
+            {recentContent.map((content) => (
+              <Link
+                key={content._id}
+                to={`/content/${content._id}`}
+                className="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                      {content.type === 'notes' ? 'Notes' : 
+                       content.type === 'report' ? 'Report' :
+                       content.type === 'ppt' ? 'PPT' :
+                       content.type === 'revision_sheet' ? 'Revision Sheet' :
+                       content.type === 'mock_paper' ? 'Mock Paper' : content.type}
+                    </span>
+                    <p className="font-medium text-gray-800">{content.title}</p>
+                  </div>
+                  <p className="text-sm text-gray-600">
+                    <span className="font-medium">{content.subjectId?.name || 'Unknown Subject'}</span>
+                    {content.topic && <span> • {content.topic}</span>}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {new Date(content.createdAt).toLocaleDateString()} at {new Date(content.createdAt).toLocaleTimeString()}
+                  </p>
+                </div>
+                <div className="text-blue-600 ml-4">
+                  →
+                </div>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500">No content generated yet. Start by creating study materials in your subjects!</p>
+        )}
+      </div>
+
       {/* Recent Sessions */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-semibold mb-4">Recent Study Sessions</h2>
@@ -113,7 +157,7 @@ const Dashboard = () => {
             {recentSessions.map((session) => (
               <div key={session._id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                 <div>
-                  <p className="font-medium">{session.subjectId?.name || 'Unknown Subject'}</p>
+                  <p className="font-medium">{session.subjectId?.name || session.contentId?.title || 'Unknown Subject'}</p>
                   <p className="text-sm text-gray-600">
                     {new Date(session.startTime).toLocaleString()} - {session.mode}
                   </p>
