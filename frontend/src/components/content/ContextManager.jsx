@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Upload, FileText, X } from 'lucide-react';
+import { Upload, FileText, X, Cloud, Loader2, Eye, Download, Share2 } from 'lucide-react';
 import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 
 const ContextManager = ({ subjectId }) => {
+  const navigate = useNavigate();
   const [contexts, setContexts] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
@@ -13,6 +15,9 @@ const ContextManager = ({ subjectId }) => {
     keywords: ''
   });
   const [file, setFile] = useState(null);
+  const [cloudinaryUrl, setCloudinaryUrl] = useState(null);
+  const [cloudinaryPublicId, setCloudinaryPublicId] = useState(null);
+  const [uploadingToCloudinary, setUploadingToCloudinary] = useState(false);
 
   useEffect(() => {
     fetchContexts();
@@ -27,6 +32,29 @@ const ContextManager = ({ subjectId }) => {
     }
   };
 
+  const handleCloudinaryUpload = async (fileToUpload) => {
+    if (!fileToUpload) return;
+    
+    setUploadingToCloudinary(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('file', fileToUpload);
+      
+      const response = await api.post('/cloudinary/upload', formDataToSend, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setCloudinaryUrl(response.data.url);
+      setCloudinaryPublicId(response.data.public_id);
+      alert('File uploaded to Cloudinary successfully!');
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      alert('Failed to upload file to Cloudinary. You can still upload directly.');
+    } finally {
+      setUploadingToCloudinary(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
@@ -34,12 +62,19 @@ const ContextManager = ({ subjectId }) => {
       formDataToSend.append('subjectId', subjectId);
       formDataToSend.append('type', formData.type);
       formDataToSend.append('title', formData.title);
-      formDataToSend.append('content', formData.content);
+      
+      // If Cloudinary URL exists, use it; otherwise use direct file upload or content
+      if (cloudinaryUrl) {
+        // Send Cloudinary URL in a format the backend can parse
+        formDataToSend.append('content', `[Cloudinary File]\nURL: ${cloudinaryUrl}\nPublic ID: ${cloudinaryPublicId}`);
+      } else if (file) {
+        formDataToSend.append('file', file);
+      } else {
+        formDataToSend.append('content', formData.content);
+      }
+      
       formDataToSend.append('topic', formData.topic);
       formDataToSend.append('keywords', formData.keywords);
-      if (file) {
-        formDataToSend.append('file', file);
-      }
 
       await api.post('/context', formDataToSend, {
         headers: { 'Content-Type': 'multipart/form-data' }
@@ -48,8 +83,11 @@ const ContextManager = ({ subjectId }) => {
       setShowModal(false);
       setFormData({ type: 'syllabus', title: '', content: '', topic: '', keywords: '' });
       setFile(null);
+      setCloudinaryUrl(null);
+      setCloudinaryPublicId(null);
       fetchContexts();
     } catch (error) {
+      console.error('Upload error:', error);
       alert('Failed to upload context');
     }
   };
@@ -61,6 +99,56 @@ const ContextManager = ({ subjectId }) => {
       fetchContexts();
     } catch (error) {
       alert('Failed to delete context');
+    }
+  };
+
+  const handleViewFile = (context) => {
+    // If it's a Cloudinary URL, open it directly
+    if (context.fileUrl && context.fileUrl.startsWith('http')) {
+      window.open(context.fileUrl, '_blank');
+    } else if (context.content && context.content.startsWith('http')) {
+      // Content might be a URL
+      window.open(context.content, '_blank');
+    } else {
+      // Show content in a modal or new page
+      alert('File content:\n\n' + context.content.substring(0, 500) + (context.content.length > 500 ? '...' : ''));
+    }
+  };
+
+  const handleShareToCommunity = async (context) => {
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('type', context.type === 'notes' ? 'notes' : 'notes');
+      formDataToSend.append('title', context.title);
+      
+      // If context has a file URL, use it
+      if (context.fileUrl) {
+        formDataToSend.append('content', `[Cloudinary File]\nURL: ${context.fileUrl}`);
+      } else {
+        formDataToSend.append('content', context.content);
+      }
+
+      // Get user info for metadata
+      const userResponse = await api.get('/auth/me');
+      const user = userResponse.data;
+
+      formDataToSend.append(
+        'metadata',
+        JSON.stringify({
+          subject: 'Shared from Context',
+          topic: context.metadata?.topic || context.title,
+          semester: user.semester || 1,
+          university: user.university || '',
+          branch: user.branch || ''
+        })
+      );
+
+      await api.post('/community/posts', formDataToSend);
+      alert('Context shared to community successfully!');
+      navigate('/community');
+    } catch (error) {
+      console.error('Share error:', error);
+      alert('Failed to share to community. Please try again.');
     }
   };
 
@@ -105,8 +193,36 @@ const ContextManager = ({ subjectId }) => {
               <p className="text-sm text-gray-600">Topic: {context.metadata.topic}</p>
             )}
             <p className="text-sm text-gray-500 mt-2 line-clamp-2">
-              {context.content.substring(0, 100)}...
+              {context.fileUrl ? '📎 File attached' : context.content.substring(0, 100) + '...'}
             </p>
+            <div className="flex gap-2 mt-3">
+              {(context.fileUrl || (context.content && context.content.startsWith('http'))) && (
+                <button
+                  onClick={() => handleViewFile(context)}
+                  className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 px-2 py-1 rounded hover:bg-blue-50"
+                >
+                  <Eye size={14} />
+                  View
+                </button>
+              )}
+              {(context.fileUrl || (context.content && context.content.startsWith('http'))) && (
+                <a
+                  href={context.fileUrl || context.content}
+                  download
+                  className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 px-2 py-1 rounded hover:bg-green-50"
+                >
+                  <Download size={14} />
+                  Download
+                </a>
+              )}
+              <button
+                onClick={() => handleShareToCommunity(context)}
+                className="flex items-center gap-1 text-xs text-purple-600 hover:text-purple-700 px-2 py-1 rounded hover:bg-purple-50"
+              >
+                <Share2 size={14} />
+                Share
+              </button>
+            </div>
           </div>
         ))}
       </div>
@@ -145,14 +261,67 @@ const ContextManager = ({ subjectId }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload File (PDF/Text) or Enter Content
+                  Upload File (PDF/Text/Images) or Enter Content
                 </label>
-                <input
-                  type="file"
-                  accept=".pdf,.txt"
-                  onChange={(e) => setFile(e.target.files[0])}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                />
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const selectedFile = e.target.files[0];
+                        if (selectedFile) {
+                          setFile(selectedFile);
+                          setCloudinaryUrl(null);
+                          setCloudinaryPublicId(null);
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md"
+                    />
+                    {file && (
+                      <button
+                        type="button"
+                        onClick={() => handleCloudinaryUpload(file)}
+                        disabled={uploadingToCloudinary}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {uploadingToCloudinary ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Cloud size={16} />
+                            Upload to Cloudinary
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {cloudinaryUrl && (
+                    <div className="p-2 bg-green-50 border border-green-200 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-green-700">
+                          ✓ File uploaded to Cloudinary
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => window.open(cloudinaryUrl, '_blank')}
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex items-center gap-1"
+                        >
+                          <Eye size={14} />
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {file && !cloudinaryUrl && (
+                    <p className="text-xs text-gray-500">
+                      File selected: {file.name} ({(file.size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -185,7 +354,12 @@ const ContextManager = ({ subjectId }) => {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setFile(null);
+                    setCloudinaryUrl(null);
+                    setCloudinaryPublicId(null);
+                  }}
                   className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-md hover:bg-gray-300"
                 >
                   Cancel

@@ -41,7 +41,13 @@ const generatedContentSchema = new mongoose.Schema({
     wordCount: Number,
     slideCount: Number,
     generatedAt: Date
-  }
+  },
+  attachedFiles: [{
+    url: String,
+    publicId: String,
+    fileName: String,
+    fileType: String
+  }]
 }, {
   timestamps: true
 });

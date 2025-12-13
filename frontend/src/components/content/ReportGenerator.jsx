@@ -6,7 +6,8 @@ const ReportGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
     topic: '',
     wordCount: 1000,
-    requiredSections: ['Abstract', 'Introduction', 'Methodology', 'Analysis', 'Conclusion', 'References']
+    requiredSections: ['Abstract', 'Introduction', 'Methodology', 'Analysis', 'Conclusion', 'References'],
+    customPrompt: ''
   });
   const [loading, setLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
@@ -61,6 +62,19 @@ const ReportGenerator = ({ subjectId }) => {
             max="5000"
             value={formData.wordCount}
             onChange={(e) => setFormData({ ...formData, wordCount: parseInt(e.target.value) })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Special Details / Additional Instructions (Optional)
+          </label>
+          <textarea
+            value={formData.customPrompt}
+            onChange={(e) => setFormData({ ...formData, customPrompt: e.target.value })}
+            placeholder="Add any specific requirements, focus areas, or special instructions for the AI..."
+            rows="4"
             className="w-full px-3 py-2 border border-gray-300 rounded-md"
           />
         </div>

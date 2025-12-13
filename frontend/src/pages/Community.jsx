@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft, Cloud, Loader2 } from 'lucide-react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -28,8 +28,11 @@ const Community = () => {
     university: user?.university || '',
     branch: user?.branch || '',
     file: null,
-    content: ''
+    content: '',
+    cloudinaryUrl: null,
+    cloudinaryPublicId: null
   });
+  const [uploadingToCloudinary, setUploadingToCloudinary] = useState(false);
 
   useEffect(() => {
     fetchPosts();
@@ -72,6 +75,30 @@ const Community = () => {
     mock_paper: 'Mock Paper'
   };
 
+  const handleCloudinaryUpload = async (fileToUpload) => {
+    if (!fileToUpload) return;
+    
+    setUploadingToCloudinary(true);
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('file', fileToUpload);
+      
+      const response = await api.post('/cloudinary/upload', formDataToSend);
+      
+      setFormData(prev => ({
+        ...prev,
+        cloudinaryUrl: response.data.url,
+        cloudinaryPublicId: response.data.public_id
+      }));
+      alert('File uploaded to Cloudinary successfully!');
+    } catch (error) {
+      console.error('Cloudinary upload error:', error);
+      alert('Failed to upload file to Cloudinary. You can still upload directly.');
+    } finally {
+      setUploadingToCloudinary(false);
+    }
+  };
+
   const handleCreatePost = async (e) => {
     e.preventDefault();
     setSubmitting(true);
@@ -87,8 +114,14 @@ const Community = () => {
       fd.append('type', formData.type);
       fd.append('title', formData.title);
 
-      if (formData.file) fd.append('file', formData.file);
-      else fd.append('content', formData.content);
+      // Priority: Cloudinary URL > Direct file upload > Content
+      if (formData.cloudinaryUrl) {
+        fd.append('content', `[Cloudinary File]\nURL: ${formData.cloudinaryUrl}\nPublic ID: ${formData.cloudinaryPublicId}`);
+      } else if (formData.file) {
+        fd.append('file', formData.file);
+      } else {
+        fd.append('content', formData.content);
+      }
 
       fd.append(
         'metadata',
@@ -102,9 +135,24 @@ const Community = () => {
       );
 
       await api.post('/community/posts', fd);
+      
       setShowCreateModal(false);
+      setFormData({
+        title: '',
+        type: 'notes',
+        subject: '',
+        topic: '',
+        semester: user?.semester || '',
+        university: user?.university || '',
+        branch: user?.branch || '',
+        file: null,
+        content: '',
+        cloudinaryUrl: null,
+        cloudinaryPublicId: null
+      });
       fetchPosts();
     } catch (e) {
+      console.error('Create post error:', e);
       alert('Failed to create post');
     } finally {
       setSubmitting(false);
@@ -205,18 +253,50 @@ const Community = () => {
           <div className="bg-white rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Create Community Post</h2>
-              <button onClick={() => setShowCreateModal(false)}>
+              <button onClick={() => {
+                setShowCreateModal(false);
+                setFormData({
+                  title: '',
+                  type: 'notes',
+                  subject: '',
+                  topic: '',
+                  semester: user?.semester || '',
+                  university: user?.university || '',
+                  branch: user?.branch || '',
+                  file: null,
+                  content: '',
+                  cloudinaryUrl: null,
+                  cloudinaryPublicId: null
+                });
+              }}>
                 <X />
               </button>
             </div>
             <form onSubmit={handleCreatePost} className="space-y-4">
               <input
                 required
-                placeholder="Title"
+                placeholder="Title *"
                 className="w-full px-3 py-2 border rounded-md"
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               />
+
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  required
+                  placeholder="Subject *"
+                  className="px-3 py-2 border rounded-md"
+                  value={formData.subject}
+                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                />
+                <input
+                  required
+                  placeholder="Topic *"
+                  className="px-3 py-2 border rounded-md"
+                  value={formData.topic}
+                  onChange={(e) => setFormData({ ...formData, topic: e.target.value })}
+                />
+              </div>
 
               <select
                 className="w-full px-3 py-2 border rounded-md"
@@ -228,23 +308,103 @@ const Community = () => {
                 ))}
               </select>
 
-              <textarea
-                rows="5"
-                placeholder="Enter content"
-                className="w-full px-3 py-2 border rounded-md"
-                value={formData.content}
-                onChange={(e) =>
-                  setFormData({ ...formData, content: e.target.value, file: null })
-                }
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload File (Optional)
+                </label>
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <input
+                      type="file"
+                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const selectedFile = e.target.files[0];
+                        if (selectedFile) {
+                          setFormData(prev => ({
+                            ...prev,
+                            file: selectedFile,
+                            cloudinaryUrl: null,
+                            cloudinaryPublicId: null
+                          }));
+                        }
+                      }}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                    />
+                    {formData.file && (
+                      <button
+                        type="button"
+                        onClick={() => handleCloudinaryUpload(formData.file)}
+                        disabled={uploadingToCloudinary}
+                        className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      >
+                        {uploadingToCloudinary ? (
+                          <>
+                            <Loader2 size={16} className="animate-spin" />
+                            Uploading...
+                          </>
+                        ) : (
+                          <>
+                            <Cloud size={16} />
+                            Upload to Cloudinary
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  {formData.cloudinaryUrl && (
+                    <div className="p-2 bg-green-50 border border-green-200 rounded-md">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-green-700">
+                          ✓ File uploaded to Cloudinary
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => window.open(formData.cloudinaryUrl, '_blank')}
+                          className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex items-center gap-1"
+                        >
+                          <Eye size={14} />
+                          View
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {formData.file && !formData.cloudinaryUrl && (
+                    <p className="text-xs text-gray-500">
+                      File selected: {formData.file.name} ({(formData.file.size / 1024).toFixed(2)} KB)
+                    </p>
+                  )}
+                </div>
+              </div>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700"
-              >
-                {submitting ? 'Creating…' : 'Create Post'}
-              </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Content {formData.cloudinaryUrl || formData.file ? '(Optional if file uploaded)' : ''}
+                </label>
+                <textarea
+                  rows="5"
+                  placeholder="Enter content"
+                  className="w-full px-3 py-2 border rounded-md"
+                  value={formData.content}
+                  onChange={(e) =>
+                    setFormData({ ...formData, content: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                {(!formData.cloudinaryUrl && !formData.file && !formData.content) && (
+                  <p className="text-xs text-red-500">
+                    Please upload a file, upload to Cloudinary, or enter content
+                  </p>
+                )}
+                <button
+                  type="submit"
+                  disabled={submitting || (!formData.cloudinaryUrl && !formData.file && !formData.content)}
+                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Creating…' : 'Create Post'}
+                </button>
+              </div>
             </form>
           </div>
         </div>

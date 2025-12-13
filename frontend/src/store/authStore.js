@@ -45,7 +45,11 @@ const useAuthStore = create((set) => ({
       set({ user: response.data, isAuthenticated: true });
       return { success: true };
     } catch (error) {
-      // If token is invalid, clear it
+      // If token is invalid or user not logged in, silently clear it
+      // Don't log 401 errors as they're expected when user isn't authenticated
+      if (error.response?.status !== 401) {
+        console.error('Failed to fetch user:', error);
+      }
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
       set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false });

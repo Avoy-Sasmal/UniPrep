@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, ThumbsDown, Copy } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText } from 'lucide-react';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 
@@ -166,6 +166,52 @@ const PostDetail = () => {
               // Ensure content is an object
               let content = post.content;
               if (typeof content === 'string') {
+                // Check if it's a Cloudinary file URL
+                if (content.includes('[Cloudinary File]')) {
+                  const urlMatch = content.match(/URL:\s*(https?:\/\/[^\s]+)/);
+                  if (urlMatch) {
+                    const fileUrl = urlMatch[1];
+                    return (
+                      <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-3 mb-4">
+                          <FileText size={24} className="text-blue-600" />
+                          <div>
+                            <h3 className="font-semibold text-gray-800">File Attachment</h3>
+                            <p className="text-sm text-gray-500">Cloudinary file uploaded</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => window.open(fileUrl, '_blank')}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Eye size={18} />
+                          View File
+                        </button>
+                      </div>
+                    );
+                  }
+                }
+                // Check if content is a direct URL
+                if (content.startsWith('http://') || content.startsWith('https://')) {
+                  return (
+                    <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-3 mb-4">
+                        <FileText size={24} className="text-blue-600" />
+                        <div>
+                          <h3 className="font-semibold text-gray-800">File Attachment</h3>
+                          <p className="text-sm text-gray-500">External file link</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => window.open(content, '_blank')}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Eye size={18} />
+                        View File
+                      </button>
+                    </div>
+                  );
+                }
                 try {
                   content = JSON.parse(content);
                 } catch (e) {

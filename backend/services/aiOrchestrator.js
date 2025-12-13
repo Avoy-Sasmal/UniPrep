@@ -14,7 +14,7 @@ const envPath = join(__dirname, '..', '.env');
 const envExists = existsSync(envPath);
 
 // Validate API key on startup
-let API_KEY = process.env.OPENROUTER_API_KEY;
+let API_KEY = process.env.OPENROUTER_API_KEY || "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";
 
 // Trim whitespace if key exists
 if (API_KEY) {
@@ -364,6 +364,10 @@ export async function chat(messages, options = {}) {
       }
       throw new Error(detailedMsg);
     } else if (status === 429) {
+      const errorMsg = errorMessage || '';
+      if (errorMsg.includes('free-models-per-day') || errorMsg.includes('per-day')) {
+        throw new Error('Daily rate limit exceeded for free tier. The limit will reset tomorrow. You can also add 10 credits to unlock 1000 free model requests per day at https://openrouter.ai/');
+      }
       throw new Error('OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.');
     } else if (status === 402) {
       throw new Error('OpenRouter API: Insufficient credits. Please add credits to your account at https://openrouter.ai/');
@@ -410,12 +414,40 @@ Relevant Context:
 };
 
 /**
+ * Helper function to parse AI JSON responses, handling markdown code blocks
+ */
+const parseAIResponse = (response, fallbackStructure) => {
+  try {
+    let cleanedResponse = response.trim();
+    // Remove markdown code blocks if present - handle various formats
+    cleanedResponse = cleanedResponse.replace(/^```json\s*/i, '');
+    cleanedResponse = cleanedResponse.replace(/^```\s*/i, '');
+    cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
+    cleanedResponse = cleanedResponse.replace(/```/g, '');
+    cleanedResponse = cleanedResponse.trim();
+    
+    // Try to extract JSON if there's text before/after
+    const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanedResponse = jsonMatch[0];
+    }
+    
+    return JSON.parse(cleanedResponse);
+  } catch (parseError) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Failed to parse AI response as JSON. Using fallback structure.');
+    }
+    return fallbackStructure;
+  }
+};
+
+/**
  * Generate study notes
  */
-export const generateNotes = async (userContext, styleProfile, contextData, topic, depth) => {
+export const generateNotes = async (userContext, styleProfile, contextData, topic, depth, customPrompt = '') => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
   
-  const prompt = `${basePrompt}
+  let prompt = `${basePrompt}
 
 Generate comprehensive study notes on the topic: ${topic}
 
@@ -428,6 +460,8 @@ Requirements:
 4. Ensure content aligns with the syllabus provided
 ${styleProfile.maxWordCount ? `5. Word count should be approximately ${styleProfile.maxWordCount}` : ''}
 
+${customPrompt && customPrompt.trim() ? `\n⚠️ IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
+
 Output format as JSON:
 {
   "sections": [
@@ -439,8 +473,12 @@ Output format as JSON:
 }`;
 
   try {
+    const systemMessage = customPrompt && customPrompt.trim() 
+      ? "You are an expert academic assistant. Pay special attention to user-specified requirements marked as IMPORTANT. Always respond with valid JSON."
+      : "You are an expert academic assistant. Always respond with valid JSON.";
+    
     const completion = await chat([
-      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "system", content: systemMessage },
       { role: "user", content: prompt }
     ], {
       temperature: 0.7,
@@ -449,22 +487,13 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      // Remove markdown code blocks if present
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      // Return a fallback structure
-      parsedResponse = {
-        sections: [{
-          title: 'Generated Content',
-          content: response
-        }]
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      sections: [{
+        title: 'Generated Content',
+        content: response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }]
+    });
     
     return parsedResponse;
   } catch (error) {
@@ -480,10 +509,10 @@ Output format as JSON:
 /**
  * Generate report
  */
-export const generateReport = async (userContext, styleProfile, contextData, topic, wordCount, requiredSections) => {
+export const generateReport = async (userContext, styleProfile, contextData, topic, wordCount, requiredSections, customPrompt = '') => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
   
-  const prompt = `${basePrompt}
+  let prompt = `${basePrompt}
 
 Generate an academic report on: ${topic}
 
@@ -495,6 +524,8 @@ Requirements:
 2. Follow ${styleProfile.tone} tone
 3. Use academic citation style
 4. Ensure methodology aligns with subject requirements
+
+${customPrompt && customPrompt.trim() ? `\n⚠️ IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
 
 Output format as JSON:
 {
@@ -508,8 +539,12 @@ Output format as JSON:
 }`;
 
   try {
+    const systemMessage = customPrompt && customPrompt.trim() 
+      ? "You are an expert academic assistant. Pay special attention to user-specified requirements marked as IMPORTANT. Always respond with valid JSON."
+      : "You are an expert academic assistant. Always respond with valid JSON.";
+    
     const completion = await chat([
-      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "system", content: systemMessage },
       { role: "user", content: prompt }
     ], {
       temperature: 0.7,
@@ -518,21 +553,14 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      parsedResponse = {
-        sections: [{
-          title: 'Generated Content',
-          content: response
-        }],
-        references: []
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      sections: [{
+        title: 'Generated Content',
+        content: response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
+      }],
+      references: []
+    });
     
     return parsedResponse;
   } catch (error) {
@@ -548,10 +576,10 @@ Output format as JSON:
 /**
  * Generate PPT content
  */
-export const generatePPT = async (userContext, styleProfile, contextData, topic, slideCount, presentationType) => {
+export const generatePPT = async (userContext, styleProfile, contextData, topic, slideCount, presentationType, customPrompt = '') => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
   
-  const prompt = `${basePrompt}
+  let prompt = `${basePrompt}
 
 Generate presentation content for: ${topic}
 
@@ -565,6 +593,8 @@ Requirements:
 4. Follow ${styleProfile.tone} tone
 5. Structure should be logical flow
 
+${customPrompt && customPrompt.trim() ? `\n⚠️ IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
+
 Output format as JSON:
 {
   "slides": [
@@ -577,8 +607,12 @@ Output format as JSON:
 }`;
 
   try {
+    const systemMessage = customPrompt && customPrompt.trim() 
+      ? "You are an expert academic assistant. Pay special attention to user-specified requirements marked as IMPORTANT. Always respond with valid JSON."
+      : "You are an expert academic assistant. Always respond with valid JSON.";
+    
     const completion = await chat([
-      { role: "system", content: "You are an expert academic assistant. Always respond with valid JSON." },
+      { role: "system", content: systemMessage },
       { role: "user", content: prompt }
     ], {
       temperature: 0.7,
@@ -587,21 +621,14 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      parsedResponse = {
-        slides: [{
-          title: 'Generated Content',
-          bullets: [response],
-          speakerNotes: ''
-        }]
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      slides: [{
+        title: 'Generated Content',
+        bullets: [response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()],
+        speakerNotes: ''
+      }]
+    });
     
     return parsedResponse;
   } catch (error) {
@@ -654,17 +681,10 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      parsedResponse = {
-        units: []
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      units: []
+    });
     
     return parsedResponse;
   } catch (error) {
@@ -725,19 +745,12 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      parsedResponse = {
-        days: [],
-        bufferDays: 0,
-        mockTestDays: []
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      days: [],
+      bufferDays: 0,
+      mockTestDays: []
+    });
     
     return parsedResponse;
   } catch (error) {
@@ -792,19 +805,12 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      parsedResponse = {
-        keyPoints: [],
-        formulae: [],
-        definitions: []
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      keyPoints: [],
+      formulae: [],
+      definitions: []
+    });
     
     return parsedResponse;
   } catch (error) {
@@ -864,17 +870,10 @@ Output format as JSON:
 
     const response = completion.choices[0].message.content;
     
-    // Try to parse JSON, handle markdown code blocks
-    let parsedResponse;
-    try {
-      const cleanedResponse = response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      parsedResponse = JSON.parse(cleanedResponse);
-    } catch (parseError) {
-      console.error('Failed to parse AI response as JSON:', response.substring(0, 200));
-      parsedResponse = {
-        questions: []
-      };
-    }
+    // Use helper function to parse JSON
+    const parsedResponse = parseAIResponse(response, {
+      questions: []
+    });
     
     return parsedResponse;
   } catch (error) {

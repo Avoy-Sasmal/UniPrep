@@ -29,8 +29,21 @@ export const createContext = async (req, res) => {
   try {
     const { subjectId, type, title, content, topic, keywords } = req.body;
     let extractedContent = content || '';
+    let fileUrl = null;
 
-    if (req.file) {
+    // Check if content contains Cloudinary URL
+    if (content && content.includes('[Cloudinary File]')) {
+      // Extract Cloudinary URL from content
+      const urlMatch = content.match(/URL:\s*(https?:\/\/[^\s]+)/);
+      const publicIdMatch = content.match(/Public ID:\s*([^\s]+)/);
+      
+      if (urlMatch) {
+        fileUrl = urlMatch[1];
+        // Store the Cloudinary URL as the content (string format)
+        extractedContent = fileUrl;
+      }
+    } else if (req.file) {
+      // Direct file upload - extract content from file
       try {
         extractedContent = await extractFileContent(req.file);
       } catch (error) {
@@ -44,6 +57,7 @@ export const createContext = async (req, res) => {
       type,
       title,
       content: extractedContent,
+      fileUrl: fileUrl, // Store Cloudinary URL if available
       metadata: {
         uploadDate: new Date(),
         topic: topic || '',

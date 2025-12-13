@@ -6,7 +6,8 @@ const PPTGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
     topic: '',
     slideCount: 10,
-    presentationType: 'seminar'
+    presentationType: 'seminar',
+    customPrompt: ''
   });
   const [loading, setLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
@@ -78,6 +79,19 @@ const PPTGenerator = ({ subjectId }) => {
             <option value="viva">Viva</option>
             <option value="internal">Internal</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Special Details / Additional Instructions (Optional)
+          </label>
+          <textarea
+            value={formData.customPrompt}
+            onChange={(e) => setFormData({ ...formData, customPrompt: e.target.value })}
+            placeholder="Add any specific requirements, focus areas, or special instructions for the AI..."
+            rows="4"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md"
+          />
         </div>
 
         <button

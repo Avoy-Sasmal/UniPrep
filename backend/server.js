@@ -11,6 +11,7 @@ import examRoutes from './routes/exam.js';
 import quizRoutes from './routes/quiz.js';
 import sessionRoutes from './routes/sessions.js';
 import communityRoutes from './routes/community.js';
+import cloudinaryRoutes from './routes/cloudinary.js';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
 dotenv.config();
@@ -42,6 +43,7 @@ app.use('/api/exam', examRoutes);
 app.use('/api/quiz', quizRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/community', communityRoutes);
+app.use('/api/cloudinary', cloudinaryRoutes);
 
 // Normal Route
 app.get('/', (req, res) => {

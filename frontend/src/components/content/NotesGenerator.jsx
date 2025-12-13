@@ -6,7 +6,8 @@ import api from '../../services/api';
 const NotesGenerator = ({ subjectId }) => {
   const [formData, setFormData] = useState({
     topic: '',
-    depth: 'medium'
+    depth: 'medium',
+    customPrompt: ''
   });
   const [loading, setLoading] = useState(false);
   const [generatedContent, setGeneratedContent] = useState(null);
@@ -64,6 +65,19 @@ const NotesGenerator = ({ subjectId }) => {
             <option value="medium">Medium</option>
             <option value="detailed">Detailed</option>
           </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Special Details / Additional Instructions (Optional)
+          </label>
+          <textarea
+            value={formData.customPrompt}
+            onChange={(e) => setFormData({ ...formData, customPrompt: e.target.value })}
+            placeholder="Add any specific requirements, focus areas, or special instructions for the AI..."
+            rows="4"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
         </div>
 
         <button

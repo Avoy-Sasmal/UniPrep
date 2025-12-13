@@ -98,7 +98,7 @@ export const getContentById = async (req, res) => {
 
 export const generateNotesContent = async (req, res) => {
   try {
-    const { subjectId, topic, depth } = req.body;
+    const { subjectId, topic, depth, attachedFiles, customPrompt } = req.body;
     const { user, subject, styleProfile } = await getUserSubjectAndStyle(
       req.userId,
       subjectId
@@ -118,7 +118,8 @@ export const generateNotesContent = async (req, res) => {
       styleProfile,
       contextData,
       topic,
-      depth || 'medium'
+      depth || 'medium',
+      customPrompt || ''
     );
 
     const content = new GeneratedContent({
@@ -130,6 +131,7 @@ export const generateNotesContent = async (req, res) => {
       content: generatedContent,
       styleProfileId: styleProfile._id,
       contextUsed: contexts.map((c) => c._id),
+      attachedFiles: attachedFiles || [],
       metadata: {
         depth: depth || 'medium',
         generatedAt: new Date()
@@ -171,7 +173,7 @@ export const generateNotesContent = async (req, res) => {
 
 export const generateReportContent = async (req, res) => {
   try {
-    const { subjectId, topic, wordCount, requiredSections } = req.body;
+    const { subjectId, topic, wordCount, requiredSections, attachedFiles, customPrompt } = req.body;
     const { user, subject, styleProfile } = await getUserSubjectAndStyle(
       req.userId,
       subjectId
@@ -199,7 +201,8 @@ export const generateReportContent = async (req, res) => {
         'Analysis',
         'Conclusion',
         'References'
-      ]
+      ],
+      customPrompt || ''
     );
 
     const content = new GeneratedContent({
@@ -211,6 +214,7 @@ export const generateReportContent = async (req, res) => {
       content: generatedContent,
       styleProfileId: styleProfile._id,
       contextUsed: contexts.map((c) => c._id),
+      attachedFiles: attachedFiles || [],
       metadata: {
         wordCount: wordCount || 1000,
         generatedAt: new Date()
@@ -252,7 +256,7 @@ export const generateReportContent = async (req, res) => {
 
 export const generatePPTContent = async (req, res) => {
   try {
-    const { subjectId, topic, slideCount, presentationType } = req.body;
+    const { subjectId, topic, slideCount, presentationType, attachedFiles, customPrompt } = req.body;
     const { user, subject, styleProfile } = await getUserSubjectAndStyle(
       req.userId,
       subjectId
@@ -273,7 +277,8 @@ export const generatePPTContent = async (req, res) => {
       contextData,
       topic,
       slideCount || 10,
-      presentationType || 'seminar'
+      presentationType || 'seminar',
+      customPrompt || ''
     );
 
     const content = new GeneratedContent({
@@ -285,6 +290,7 @@ export const generatePPTContent = async (req, res) => {
       content: generatedContent,
       styleProfileId: styleProfile._id,
       contextUsed: contexts.map((c) => c._id),
+      attachedFiles: attachedFiles || [],
       metadata: {
         slideCount: slideCount || 10,
         generatedAt: new Date()
