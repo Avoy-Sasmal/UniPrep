@@ -1,5 +1,4 @@
 // Load environment variables before instantiating clients to avoid missing key errors
-import 'dotenv/config';
 import { OpenRouter } from "@openrouter/sdk";
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -14,7 +13,7 @@ const envPath = join(__dirname, '..', '.env');
 const envExists = existsSync(envPath);
 
 // Validate API key on startup
-let API_KEY = process.env.OPENROUTER_API_KEY || "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";
+let API_KEY ="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";
 
 // Trim whitespace if key exists
 if (API_KEY) {
@@ -364,11 +363,25 @@ export async function chat(messages, options = {}) {
       }
       throw new Error(detailedMsg);
     } else if (status === 429) {
-      const errorMsg = errorMessage || '';
-      if (errorMsg.includes('free-models-per-day') || errorMsg.includes('per-day')) {
-        throw new Error('Daily rate limit exceeded for free tier. The limit will reset tomorrow. You can also add 10 credits to unlock 1000 free model requests per day at https://openrouter.ai/');
+      // Check for specific rate limit messages
+      if (errorMessage.includes('free-models-per-day') || errorMessage.includes('per-day')) {
+        const detailedMsg = `Daily rate limit exceeded for free tier models.\n\n` +
+          `Your OpenRouter account has reached the daily limit for free model requests.\n\n` +
+          `SOLUTIONS:\n` +
+          `1. Wait until tomorrow - the limit resets daily\n` +
+          `2. Add 10 credits to your account to unlock 1000 free model requests per day:\n` +
+          `   - Go to https://openrouter.ai/\n` +
+          `   - Sign in to your account\n` +
+          `   - Add at least 10 credits\n` +
+          `   - This unlocks 1000 free requests per day\n\n` +
+          `3. Use a paid model instead (if you have credits):\n` +
+          `   - Set OPENROUTER_MODEL in backend/.env to a paid model\n` +
+          `   - Example: OPENROUTER_MODEL=openai/gpt-3.5-turbo\n\n` +
+          `Current API Key: ${API_KEY.substring(0, 15)}...${API_KEY.substring(API_KEY.length - 4)}\n` +
+          `Check your account status at: https://openrouter.ai/`;
+        throw new Error(detailedMsg);
       }
-      throw new Error('OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.');
+      throw new Error(`OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.\n\nError: ${errorMessage}`);
     } else if (status === 402) {
       throw new Error('OpenRouter API: Insufficient credits. Please add credits to your account at https://openrouter.ai/');
     } else if (status === 400) {

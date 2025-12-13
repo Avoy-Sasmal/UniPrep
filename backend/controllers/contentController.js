@@ -154,9 +154,11 @@ export const generateNotesContent = async (req, res) => {
         message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
       });
     }
-    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429') || errorMessage.includes('Daily rate limit')) {
       return res.status(429).json({ 
-        message: 'AI service rate limit exceeded. Please try again in a few minutes.' 
+        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day') 
+          ? errorMessage 
+          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/' 
       });
     }
     if (errorMessage.includes('credits') || errorMessage.includes('402')) {
@@ -237,9 +239,11 @@ export const generateReportContent = async (req, res) => {
         message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
       });
     }
-    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429') || errorMessage.includes('Daily rate limit')) {
       return res.status(429).json({ 
-        message: 'AI service rate limit exceeded. Please try again in a few minutes.' 
+        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day') 
+          ? errorMessage 
+          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/' 
       });
     }
     if (errorMessage.includes('credits') || errorMessage.includes('402')) {
@@ -313,9 +317,11 @@ export const generatePPTContent = async (req, res) => {
         message: 'AI service authentication failed. Please check your OpenRouter API key in the backend/.env file. The key may be invalid or expired.' 
       });
     }
-    if (errorMessage.includes('rate limit') || errorMessage.includes('429')) {
+    if (errorMessage.includes('rate limit') || errorMessage.includes('429') || errorMessage.includes('Daily rate limit')) {
       return res.status(429).json({ 
-        message: 'AI service rate limit exceeded. Please try again in a few minutes.' 
+        message: errorMessage.includes('Daily rate limit') || errorMessage.includes('free-models-per-day') 
+          ? errorMessage 
+          : 'AI service rate limit exceeded. Please try again in a few minutes or add credits to your OpenRouter account at https://openrouter.ai/' 
       });
     }
     if (errorMessage.includes('credits') || errorMessage.includes('402')) {
