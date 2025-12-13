@@ -1,16 +1,5 @@
 import { useState, useEffect } from 'react';
-import {
-  Search,
-  ThumbsUp,
-  MessageCircle,
-  Eye,
-  Plus,
-  Upload,
-  X,
-  Home,
-  Users as UsersIcon,
-  ArrowLeft
-} from 'lucide-react';
+import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft } from 'lucide-react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -123,25 +112,8 @@ const Community = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar (desktop) */}
-      <aside className="hidden lg:flex w-64 bg-white border-r px-4 py-6 flex-col">
-        <h2 className="text-xl font-bold text-blue-600 mb-8">UniPrep Copilot</h2>
-
-        <nav className="space-y-2 text-gray-700">
-          <Link to="/dashboard" className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100">
-            <Home size={18} /> Dashboard
-          </Link>
-          <Link to="/community" className="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 text-blue-600">
-            <UsersIcon size={18} /> Community
-          </Link>
-        </nav>
-      </aside>
-
-      {/* Main */}
-      <main className="flex-1">
-        {/* Header */}
-        <div className="bg-white border-b px-4 sm:px-6 py-4 flex justify-between items-center">
+    <div className="space-y-4">
+        <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Community</h1>
             <Link
@@ -151,7 +123,6 @@ const Community = () => {
               <ArrowLeft size={14} /> Back to Dashboard
             </Link>
           </div>
-
           {isAuthenticated && (
             <button
               onClick={() => setShowCreateModal(true)}
@@ -161,9 +132,7 @@ const Community = () => {
             </button>
           )}
         </div>
-
-        {/* Filters */}
-        <div className="bg-white px-4 sm:px-6 py-4 border-b">
+        <div className="bg-white px-4 sm:px-6 py-4 border rounded-lg">
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {['University', 'Branch', 'Semester', 'Subject'].map((label) => (
               <input
@@ -188,9 +157,7 @@ const Community = () => {
             </select>
           </div>
         </div>
-
-        {/* Content */}
-        <div className="px-4 sm:px-6 py-6">
+        <div>
           {loading ? (
             <div className="text-center py-20">Loading…</div>
           ) : posts.length === 0 ? (
@@ -213,7 +180,6 @@ const Community = () => {
                       <Eye size={14} /> {post.viewCount}
                     </span>
                   </div>
-
                   <h3 className="font-semibold text-lg mb-1">{post.title}</h3>
                   <p className="text-sm text-gray-600 mb-2">
                     {post.metadata.university} • {post.metadata.branch} • Sem {post.metadata.semester}
@@ -221,7 +187,6 @@ const Community = () => {
                   <p className="text-sm text-gray-500 mb-4">
                     {post.metadata.subject} • {post.metadata.topic}
                   </p>
-
                   <div className="flex gap-4 text-sm text-gray-600">
                     <span className="flex items-center gap-1">
                       <ThumbsUp size={14} /> {post.upvotes}
@@ -235,9 +200,6 @@ const Community = () => {
             </div>
           )}
         </div>
-      </main>
-
-      {/* Create Post Modal (unchanged structure, better spacing) */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl w-full max-w-2xl p-6 overflow-y-auto max-h-[90vh]">
@@ -247,7 +209,6 @@ const Community = () => {
                 <X />
               </button>
             </div>
-
             <form onSubmit={handleCreatePost} className="space-y-4">
               <input
                 required

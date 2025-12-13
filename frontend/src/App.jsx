@@ -71,11 +71,19 @@ function App() {
         />
         <Route
           path="/community"
-          element={<Community />}
+          element={
+            <Layout>
+              <Community />
+            </Layout>
+          }
         />
         <Route
           path="/community/:id"
-          element={<PostDetail />}
+          element={
+            <Layout>
+              <PostDetail />
+            </Layout>
+          }
         />
         <Route
           path="/content/:contentId"

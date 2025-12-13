@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, ThumbsDown, MessageCircle, Copy, Share2 } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Copy } from 'lucide-react';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 
@@ -111,27 +111,27 @@ const PostDetail = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <Link
-          to="/community"
-          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
-        >
-          <ArrowLeft size={20} />
-          Back to Community
-        </Link>
+    <>
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <Link
+        to="/community"
+        className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-800 mb-6"
+      >
+        <ArrowLeft size={20} />
+        Back to Community
+      </Link>
 
-        <div className="bg-white p-8 rounded-lg shadow">
+      <div className="bg-white p-8 rounded-lg shadow">
           <div className="mb-6">
             <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
               {post.type}
             </span>
             <h1 className="text-3xl font-bold mt-4 mb-2">{post.title}</h1>
             <p className="text-gray-600">
-              {post.metadata.university} • {post.metadata.branch} • Semester {post.metadata.semester}
+              {post.metadata?.university} • {post.metadata?.branch} • Semester {post.metadata?.semester}
             </p>
             <p className="text-sm text-gray-500 mt-1">
-              {post.metadata.subject} • {post.metadata.topic}
+              {post.metadata?.subject} • {post.metadata?.topic}
             </p>
           </div>
 
@@ -316,8 +316,7 @@ const PostDetail = () => {
           </div>
         </div>
       </div>
-
-      {showCloneModal && (
+    {showCloneModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Clone to Workspace</h2>
@@ -348,7 +347,7 @@ const PostDetail = () => {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 };
 

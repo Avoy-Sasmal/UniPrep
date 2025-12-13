@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
 import { BookOpen, Users, Award, Zap, ArrowRight, CheckCircle, Sparkles } from 'lucide-react';
+import Footer from '../components/layout/Footer';
 
 const Landing = () => {
   const { isAuthenticated, fetchUser } = useAuthStore();
@@ -257,13 +258,7 @@ const Landing = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-400 py-6 sm:py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="text-sm sm:text-base">
-            &copy; 2025 UniPrep Copilot. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };
