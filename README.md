@@ -154,20 +154,17 @@ See `ARCHITECTURE.md` for complete API documentation.
 ### Backend
 ```bash
 cd backend
+npm install
 npm run dev
 ```
 
 ### Frontend
 ```bash
 cd frontend
+npm install
 npm run dev
 ```
 
 ## License
-
 MIT
-
-## Contributing
-
-This is a hackathon project. Contributions welcome!
 
