@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { readFileSync } from 'fs';
+import dotenv from 'dotenv';
+dotenv.config();
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -11,9 +15,8 @@ const __dirname = dirname(__filename);
 // Check if .env file exists
 const envPath = join(__dirname, '..', '.env');
 const envExists = existsSync(envPath);
-
 // Validate API key on startup
-let API_KEY ="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";
+let API_KEY = process.env.OPENROUTER_API_KEY;
 
 // Trim whitespace if key exists
 if (API_KEY) {
@@ -31,7 +34,7 @@ if (API_KEY) {
     // Mask the key for security (show first 10 and last 4 chars)
     const maskedKey = API_KEY.substring(0, 10) + '...' + API_KEY.substring(API_KEY.length - 4);
     console.log(`✓ OpenRouter API key loaded: ${maskedKey}`);
-    
+
     // Test the API key on startup (async, don't block)
     setTimeout(async () => {
       try {
@@ -41,7 +44,7 @@ if (API_KEY) {
         } else {
           console.error('\n❌ OpenRouter API key test FAILED:');
           console.error(`   Error: ${testResult.error}`);
-          
+
           // Show diagnostics if available
           if (testResult.diagnostics) {
             console.error('\n📊 Key Diagnostics:');
@@ -60,14 +63,14 @@ if (API_KEY) {
               console.error('   ⚠️  Key is too short - you may not have copied the entire key!');
             }
           }
-          
+
           if (testResult.statusCode) {
             console.error(`   HTTP Status: ${testResult.statusCode}`);
           }
           if (testResult.detailedError) {
             console.error(`   API Response: ${testResult.detailedError}`);
           }
-          
+
           console.error('\n🔧 How to Fix:');
           console.error('   1. Go to https://openrouter.ai/keys');
           console.error('   2. Sign in (or create free account)');
@@ -115,8 +118,8 @@ if (API_KEY) {
 // Test API key function with detailed diagnostics
 export async function testAPIKey() {
   if (!API_KEY || !openrouter) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: 'API key not configured or OpenRouter client not initialized',
       diagnostics: {
         keyLength: API_KEY ? API_KEY.length : 0,
@@ -125,7 +128,7 @@ export async function testAPIKey() {
       }
     };
   }
-  
+
   // Diagnostic information
   const diagnostics = {
     keyLength: API_KEY.length,
@@ -136,44 +139,45 @@ export async function testAPIKey() {
     hasQuotes: API_KEY.includes('"') || API_KEY.includes("'"),
     startsWithCorrectPrefix: API_KEY.startsWith('sk-or-v1-') || API_KEY.startsWith('sk-')
   };
-  
+
   // Check for common issues
   if (API_KEY.length < 50) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: 'API key is too short. OpenRouter keys are typically 100+ characters long.',
-      diagnostics 
+      diagnostics
     };
   }
-  
+
   if (diagnostics.hasSpaces) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: 'API key contains spaces. Remove all spaces from the key.',
-      diagnostics 
+      diagnostics
     };
   }
-  
+
   if (diagnostics.hasQuotes) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: 'API key contains quotes. Remove quotes from your .env file.',
-      diagnostics 
+      diagnostics
     };
   }
-  
+
   if (!diagnostics.startsWithCorrectPrefix) {
-    return { 
-      valid: false, 
+    return {
+      valid: false,
       error: 'API key format looks incorrect. OpenRouter keys start with "sk-or-v1-" or "sk-"',
-      diagnostics 
+      diagnostics
     };
   }
-  
+
   try {
     console.log('[API Test] Testing API key...');
-    
+
     // Test with a simple streaming request
+    // Following OpenRouter SDK pattern exactly
     const stream = await openrouter.chat.send({
       model: "openai/gpt-oss-20b:free",
       messages: [{ role: "user", content: "Say 'test' if you can read this." }],
@@ -183,34 +187,44 @@ export async function testAPIKey() {
         includeUsage: true
       }
     });
-    
+
     // Collect the streamed response
     let hasContent = false;
+    let testUsage = null;
     for await (const chunk of stream) {
-      const content = chunk.choices?.[0]?.delta?.content;
+      const content = chunk.choices[0]?.delta?.content;
       if (content) {
         hasContent = true;
-        break; // We just need to know it works
+        // Don't break immediately, wait for usage info
+      }
+
+      // Usage information comes in the final chunk
+      if (chunk.usage) {
+        testUsage = chunk.usage;
+        if (testUsage.reasoningTokens) {
+          console.log("\nReasoning tokens:", testUsage.reasoningTokens);
+        }
+        break; // Once we get usage, we're done
       }
     }
-    
+
     if (hasContent) {
-      return { 
-        valid: true, 
+      return {
+        valid: true,
         message: 'API key is valid and working!',
-        diagnostics 
+        diagnostics
       };
     }
-    
-    return { 
-      valid: false, 
+
+    return {
+      valid: false,
       error: 'Invalid response format from API',
-      diagnostics 
+      diagnostics
     };
   } catch (error) {
     let errorDetails = error.message;
     let statusCode = null;
-    
+
     // OpenRouter SDK may throw errors differently
     if (error.status || error.statusCode) {
       statusCode = error.status || error.statusCode;
@@ -219,42 +233,42 @@ export async function testAPIKey() {
       const errorData = error.response.data;
       errorDetails = errorData?.error?.message || error.message;
     }
-    
+
     if (statusCode === 401) {
       if (errorDetails.includes('User not found') || errorDetails.includes('user not found')) {
-        return { 
-          valid: false, 
+        return {
+          valid: false,
           error: 'API key is invalid - the key does not exist in OpenRouter\'s system. You need to create a NEW key at https://openrouter.ai/keys',
           diagnostics,
           statusCode,
           detailedError: errorDetails
         };
       }
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: 'API key authentication failed. The key may be invalid, expired, or revoked.',
         diagnostics,
         statusCode,
         detailedError: errorDetails
       };
     } else if (statusCode === 402) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: 'Insufficient credits in your OpenRouter account. Add credits at https://openrouter.ai/',
         diagnostics,
         statusCode
       };
     } else if (statusCode === 429) {
-      return { 
-        valid: false, 
+      return {
+        valid: false,
         error: 'Rate limit exceeded. Wait a few minutes and try again.',
         diagnostics,
         statusCode
       };
     }
-    
-    return { 
-      valid: false, 
+
+    return {
+      valid: false,
       error: errorDetails,
       diagnostics,
       statusCode: statusCode || 'unknown',
@@ -269,16 +283,17 @@ export async function chat(messages, options = {}) {
     console.error(`\n${errorMsg}\n`);
     throw new Error(errorMsg);
   }
-  
+
   try {
     const model = process.env.OPENROUTER_MODEL || "openai/gpt-oss-20b:free";
-    
+
     // Log request for debugging (without sensitive data)
     if (process.env.NODE_ENV === 'development') {
       console.log(`[AI] Requesting model: ${model}, messages: ${messages.length}`);
     }
-    
+
     // Use streaming to get the response, then collect it
+    // Following OpenRouter SDK pattern exactly as per documentation
     const stream = await openrouter.chat.send({
       model,
       messages,
@@ -288,23 +303,28 @@ export async function chat(messages, options = {}) {
         includeUsage: true
       }
     });
-    
+
     // Collect the streamed response
     let fullResponse = "";
     let usage = null;
-    
+
+    // Stream the response to get reasoning tokens in usage
     for await (const chunk of stream) {
-      const content = chunk.choices?.[0]?.delta?.content;
+      const content = chunk.choices[0]?.delta?.content;
       if (content) {
         fullResponse += content;
       }
-      
+
       // Usage information comes in the final chunk
       if (chunk.usage) {
         usage = chunk.usage;
+        // Log reasoning tokens if available (for debugging)
+        if (process.env.NODE_ENV === 'development' && chunk.usage.reasoningTokens) {
+          console.log("\nReasoning tokens:", chunk.usage.reasoningTokens);
+        }
       }
     }
-    
+
     // Return in the same format as before for compatibility
     return {
       choices: [{
@@ -319,7 +339,7 @@ export async function chat(messages, options = {}) {
     // Provide more helpful error messages
     let status = null;
     let errorMessage = error.message;
-    
+
     if (error.status || error.statusCode) {
       status = error.status || error.statusCode;
     } else if (error.response) {
@@ -327,13 +347,13 @@ export async function chat(messages, options = {}) {
       const errorData = error.response.data;
       errorMessage = errorData?.error?.message || error.message;
     }
-    
+
     console.error('\n❌ OpenRouter API Error:');
     if (status) {
       console.error(`   Status: ${status}`);
     }
     console.error(`   Message: ${errorMessage}`);
-    
+
     if (status === 401) {
       let detailedMsg = '';
       if (errorMessage.includes('User not found') || errorMessage.includes('user not found')) {
@@ -363,25 +383,11 @@ export async function chat(messages, options = {}) {
       }
       throw new Error(detailedMsg);
     } else if (status === 429) {
-      // Check for specific rate limit messages
-      if (errorMessage.includes('free-models-per-day') || errorMessage.includes('per-day')) {
-        const detailedMsg = `Daily rate limit exceeded for free tier models.\n\n` +
-          `Your OpenRouter account has reached the daily limit for free model requests.\n\n` +
-          `SOLUTIONS:\n` +
-          `1. Wait until tomorrow - the limit resets daily\n` +
-          `2. Add 10 credits to your account to unlock 1000 free model requests per day:\n` +
-          `   - Go to https://openrouter.ai/\n` +
-          `   - Sign in to your account\n` +
-          `   - Add at least 10 credits\n` +
-          `   - This unlocks 1000 free requests per day\n\n` +
-          `3. Use a paid model instead (if you have credits):\n` +
-          `   - Set OPENROUTER_MODEL in backend/.env to a paid model\n` +
-          `   - Example: OPENROUTER_MODEL=openai/gpt-3.5-turbo\n\n` +
-          `Current API Key: ${API_KEY.substring(0, 15)}...${API_KEY.substring(API_KEY.length - 4)}\n` +
-          `Check your account status at: https://openrouter.ai/`;
-        throw new Error(detailedMsg);
+      const errorMsg = errorMessage || '';
+      if (errorMsg.includes('free-models-per-day') || errorMsg.includes('per-day')) {
+        throw new Error('Daily rate limit exceeded for free tier. The limit will reset tomorrow. You can also add 10 credits to unlock 1000 free model requests per day at https://openrouter.ai/');
       }
-      throw new Error(`OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.\n\nError: ${errorMessage}`);
+      throw new Error('OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.');
     } else if (status === 402) {
       throw new Error('OpenRouter API: Insufficient credits. Please add credits to your account at https://openrouter.ai/');
     } else if (status === 400) {
@@ -438,13 +444,13 @@ const parseAIResponse = (response, fallbackStructure) => {
     cleanedResponse = cleanedResponse.replace(/\s*```$/i, '');
     cleanedResponse = cleanedResponse.replace(/```/g, '');
     cleanedResponse = cleanedResponse.trim();
-    
+
     // Try to extract JSON if there's text before/after
     const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       cleanedResponse = jsonMatch[0];
     }
-    
+
     return JSON.parse(cleanedResponse);
   } catch (parseError) {
     if (process.env.NODE_ENV === 'development') {
@@ -459,7 +465,7 @@ const parseAIResponse = (response, fallbackStructure) => {
  */
 export const generateNotes = async (userContext, styleProfile, contextData, topic, depth, customPrompt = '') => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
-  
+
   let prompt = `${basePrompt}
 
 Generate comprehensive study notes on the topic: ${topic}
@@ -486,10 +492,10 @@ Output format as JSON:
 }`;
 
   try {
-    const systemMessage = customPrompt && customPrompt.trim() 
+    const systemMessage = customPrompt && customPrompt.trim()
       ? "You are an expert academic assistant. Pay special attention to user-specified requirements marked as IMPORTANT. Always respond with valid JSON."
       : "You are an expert academic assistant. Always respond with valid JSON.";
-    
+
     const completion = await chat([
       { role: "system", content: systemMessage },
       { role: "user", content: prompt }
@@ -499,7 +505,7 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       sections: [{
@@ -507,7 +513,7 @@ Output format as JSON:
         content: response.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
       }]
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
@@ -524,7 +530,7 @@ Output format as JSON:
  */
 export const generateReport = async (userContext, styleProfile, contextData, topic, wordCount, requiredSections, customPrompt = '') => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
-  
+
   let prompt = `${basePrompt}
 
 Generate an academic report on: ${topic}
@@ -552,10 +558,10 @@ Output format as JSON:
 }`;
 
   try {
-    const systemMessage = customPrompt && customPrompt.trim() 
+    const systemMessage = customPrompt && customPrompt.trim()
       ? "You are an expert academic assistant. Pay special attention to user-specified requirements marked as IMPORTANT. Always respond with valid JSON."
       : "You are an expert academic assistant. Always respond with valid JSON.";
-    
+
     const completion = await chat([
       { role: "system", content: systemMessage },
       { role: "user", content: prompt }
@@ -565,7 +571,7 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       sections: [{
@@ -574,7 +580,7 @@ Output format as JSON:
       }],
       references: []
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
@@ -591,7 +597,7 @@ Output format as JSON:
  */
 export const generatePPT = async (userContext, styleProfile, contextData, topic, slideCount, presentationType, customPrompt = '') => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
-  
+
   let prompt = `${basePrompt}
 
 Generate presentation content for: ${topic}
@@ -620,10 +626,10 @@ Output format as JSON:
 }`;
 
   try {
-    const systemMessage = customPrompt && customPrompt.trim() 
+    const systemMessage = customPrompt && customPrompt.trim()
       ? "You are an expert academic assistant. Pay special attention to user-specified requirements marked as IMPORTANT. Always respond with valid JSON."
       : "You are an expert academic assistant. Always respond with valid JSON.";
-    
+
     const completion = await chat([
       { role: "system", content: systemMessage },
       { role: "user", content: prompt }
@@ -633,7 +639,7 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       slides: [{
@@ -642,7 +648,7 @@ Output format as JSON:
         speakerNotes: ''
       }]
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
@@ -659,7 +665,7 @@ Output format as JSON:
  */
 export const generateExamBlueprint = async (userContext, contextData) => {
   const basePrompt = buildBasePrompt(userContext, { sections: [], tone: 'formal_exam' }, contextData);
-  
+
   const prompt = `${basePrompt}
 
 Analyze the syllabus and past year questions to create an exam blueprint.
@@ -693,12 +699,12 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       units: []
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
@@ -715,7 +721,7 @@ Output format as JSON:
  */
 export const generateRevisionPlanner = async (userContext, contextData, examDate, hoursPerDay, blueprint) => {
   const basePrompt = buildBasePrompt(userContext, { sections: [], tone: 'formal_exam' }, contextData);
-  
+
   const prompt = `${basePrompt}
 
 Create a day-wise revision plan.
@@ -757,14 +763,14 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       days: [],
       bufferDays: 0,
       mockTestDays: []
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
@@ -781,9 +787,9 @@ Output format as JSON:
  */
 export const generateRapidRevisionSheets = async (userContext, styleProfile, contextData, topics) => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
-  
+
   const topicsList = Array.isArray(topics) ? topics.join(', ') : topics;
-  
+
   const prompt = `${basePrompt}
 
 Generate rapid revision sheet for: ${topicsList}
@@ -817,14 +823,14 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       keyPoints: [],
       formulae: [],
       definitions: []
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);
@@ -841,7 +847,7 @@ Output format as JSON:
  */
 export const generateMockPaper = async (userContext, styleProfile, contextData, shortCount, longCount) => {
   const basePrompt = buildBasePrompt(userContext, styleProfile, contextData);
-  
+
   const prompt = `${basePrompt}
 
 Generate a mock exam paper.
@@ -882,12 +888,12 @@ Output format as JSON:
     });
 
     const response = completion.choices[0].message.content;
-    
+
     // Use helper function to parse JSON
     const parsedResponse = parseAIResponse(response, {
       questions: []
     });
-    
+
     return parsedResponse;
   } catch (error) {
     console.error('AI Generation Error:', error);

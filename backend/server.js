@@ -63,7 +63,7 @@ app.get('/api/test-ai-key', async (req, res) => {
 
     // Log diagnostics for debugging
     if (!result.valid && result.diagnostics) {
-      console.log('\n📊 API Key Diagnostics:');
+      console.log('\n API Key Diagnostics:');
       console.log(`   Length: ${result.diagnostics.keyLength} characters`);
       console.log(`   Starts with: ${result.diagnostics.keyPrefix}...`);
       console.log(`   Ends with: ...${result.diagnostics.keySuffix}`);
