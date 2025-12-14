@@ -28,14 +28,18 @@ const Header = ({ onToggleSidebar, sidebarOpen }) => {
             </button>
             
             {/* Logo - Responsive sizing */}
-            <Link 
-              to="/dashboard" 
-              className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-shrink-0"
+         {/* Logo + Brand */}
+         <Link
+              to="/dashboard"
+              className="flex items-center gap-2 sm:gap-3 flex-shrink-0"
             >
-              <BookOpen className="text-blue-600 flex-shrink-0" size={24} />
+              <img
+                src="/logo.png"
+                alt="UniPrep Logo"
+                className="h-7 w-7 sm:h-8 sm:w-8 object-contain"
+              />
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-blue-600 truncate">
-                <span className="hidden sm:inline">UniPrep Copilot</span>
-                <span className="sm:hidden">UniPrep</span>
+                UniPrep
               </h1>
             </Link>
           </div>
