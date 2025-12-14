@@ -13,10 +13,19 @@ const formatUser = (user) => ({
 });
 
 const issueTokens = async (user) => {
-  const tokens = generateTokens({ userId: user._id });
-  user.refreshToken = tokens.refreshToken;
-  await user.save();
-  return tokens;
+  try {
+    // Validate JWT secrets are available
+    if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+      throw new Error('JWT secrets are not configured. Please check your .env file.');
+    }
+    const tokens = generateTokens({ userId: user._id });
+    user.refreshToken = tokens.refreshToken;
+    await user.save();
+    return tokens;
+  } catch (error) {
+    console.error('Token generation error:', error);
+    throw error;
+  }
 };
 
 export const registerUser = async (req, res) => {
@@ -48,7 +57,8 @@ export const registerUser = async (req, res) => {
       user: formatUser(user)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Registration error:', error);
+    res.status(500).json({ message: error.message || 'Registration failed' });
   }
 };
 
@@ -74,7 +84,8 @@ export const loginUser = async (req, res) => {
       user: formatUser(user)
     });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('Login error:', error);
+    res.status(500).json({ message: error.message || 'Login failed' });
   }
 };
 

@@ -169,8 +169,20 @@ const PostDetail = () => {
                 // Check if it's a Cloudinary file URL
                 if (content.includes('[Cloudinary File]')) {
                   const urlMatch = content.match(/URL:\s*(https?:\/\/[^\s]+)/);
+                  const publicIdMatch = content.match(/Public ID:\s*([^\s]+)/);
                   if (urlMatch) {
                     const fileUrl = urlMatch[1];
+                    // Check if it's a PDF - Cloudinary raw files or URLs with .pdf
+                    const isPDF = fileUrl.toLowerCase().includes('.pdf') || 
+                                 fileUrl.includes('format=pdf') || 
+                                 fileUrl.includes('resource_type=raw') ||
+                                 (publicIdMatch && publicIdMatch[1].toLowerCase().endsWith('.pdf'));
+                    
+                    // For Cloudinary PDFs, use the URL directly or add format parameter
+                    const pdfUrl = isPDF && !fileUrl.includes('.pdf') 
+                      ? `${fileUrl}#page=1` 
+                      : fileUrl;
+                    
                     return (
                       <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                         <div className="flex items-center gap-3 mb-4">
@@ -180,19 +192,39 @@ const PostDetail = () => {
                             <p className="text-sm text-gray-500">Cloudinary file uploaded</p>
                           </div>
                         </div>
-                        <button
-                          onClick={() => window.open(fileUrl, '_blank')}
-                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                        >
-                          <Eye size={18} />
-                          View File
-                        </button>
+                        {isPDF ? (
+                          <div className="space-y-3">
+                            <iframe
+                              src={pdfUrl}
+                              className="w-full h-96 border border-gray-300 rounded-lg"
+                              title="PDF Viewer"
+                              type="application/pdf"
+                            />
+                            <button
+                              onClick={() => window.open(fileUrl, '_blank')}
+                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              <Eye size={18} />
+                              Open in New Tab
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => window.open(fileUrl, '_blank')}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Eye size={18} />
+                            View File
+                          </button>
+                        )}
                       </div>
                     );
                   }
                 }
                 // Check if content is a direct URL
                 if (content.startsWith('http://') || content.startsWith('https://')) {
+                  const isPDF = content.toLowerCase().endsWith('.pdf') || content.includes('.pdf') || content.includes('format=pdf');
+                  
                   return (
                     <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
                       <div className="flex items-center gap-3 mb-4">
@@ -202,13 +234,30 @@ const PostDetail = () => {
                           <p className="text-sm text-gray-500">External file link</p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => window.open(content, '_blank')}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        <Eye size={18} />
-                        View File
-                      </button>
+                      {isPDF ? (
+                        <div className="space-y-3">
+                          <iframe
+                            src={content}
+                            className="w-full h-96 border border-gray-300 rounded-lg"
+                            title="PDF Viewer"
+                          />
+                          <button
+                            onClick={() => window.open(content, '_blank')}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                          >
+                            <Eye size={18} />
+                            Open in New Tab
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => window.open(content, '_blank')}
+                          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          <Eye size={18} />
+                          View File
+                        </button>
+                      )}
                     </div>
                   );
                 }

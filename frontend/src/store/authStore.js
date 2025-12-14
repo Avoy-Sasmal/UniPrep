@@ -9,27 +9,47 @@ const useAuthStore = create((set) => ({
 
   login: async (email, password) => {
     try {
+      if (!email || !password) {
+        return { success: false, error: 'Email and password are required' };
+      }
       const response = await api.post('/auth/login', { email, password });
       const { accessToken, refreshToken, user } = response.data;
+      if (!accessToken || !refreshToken) {
+        return { success: false, error: 'Invalid response from server' };
+      }
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       set({ user, accessToken, refreshToken, isAuthenticated: true });
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.response?.data?.message || 'Login failed' };
+      console.error('Login error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      return { success: false, error: errorMessage };
     }
   },
 
   register: async (userData) => {
     try {
+      // Validate required fields
+      const requiredFields = ['email', 'password', 'name', 'university', 'college', 'branch', 'semester'];
+      const missingFields = requiredFields.filter(field => !userData[field]);
+      if (missingFields.length > 0) {
+        return { success: false, error: `Missing required fields: ${missingFields.join(', ')}` };
+      }
+
       const response = await api.post('/auth/register', userData);
       const { accessToken, refreshToken, user } = response.data;
+      if (!accessToken || !refreshToken) {
+        return { success: false, error: 'Invalid response from server' };
+      }
       localStorage.setItem('accessToken', accessToken);
       localStorage.setItem('refreshToken', refreshToken);
       set({ user, accessToken, refreshToken, isAuthenticated: true });
       return { success: true };
     } catch (error) {
-      return { success: false, error: error.response?.data?.message || 'Registration failed' };
+      console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      return { success: false, error: errorMessage };
     }
   },
 

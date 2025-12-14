@@ -8,7 +8,8 @@ import {
   commentOnPost,
   getPostComments,
   cloneCommunityPost,
-  reportCommunityPost
+  reportCommunityPost,
+  deleteCommunityPost
 } from '../controllers/communityController.js';
 import { authenticateAccessToken } from '../middleware/auth.js';
 
@@ -23,6 +24,7 @@ router.post('/posts/:id/comment', authenticateAccessToken, commentOnPost);
 router.get('/posts/:id/comments', getPostComments);
 router.post('/posts/:id/clone', authenticateAccessToken, cloneCommunityPost);
 router.post('/posts/:id/report', authenticateAccessToken, reportCommunityPost);
+router.delete('/posts/:id', authenticateAccessToken, deleteCommunityPost);
 
 export default router;
 

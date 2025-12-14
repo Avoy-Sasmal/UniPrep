@@ -266,3 +266,29 @@ export const reportCommunityPost = async (req, res) => {
   }
 };
 
+export const deleteCommunityPost = async (req, res) => {
+  try {
+    const post = await CommunityPost.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    // Only allow the post owner to delete
+    if (post.userId.toString() !== req.userId.toString()) {
+      return res.status(403).json({ message: 'You can only delete your own posts' });
+    }
+
+    // Delete associated votes and comments
+    await CommunityVote.deleteMany({ postId: req.params.id });
+    await CommunityComment.deleteMany({ postId: req.params.id });
+
+    // Delete the post
+    await CommunityPost.deleteOne({ _id: req.params.id });
+
+    res.json({ message: 'Post deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting community post:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+

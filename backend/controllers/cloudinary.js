@@ -29,17 +29,34 @@ export const uploadFromBrowser = async (req, res) => {
     // Convert buffer to stream for Cloudinary
     const buffer = file.buffer;
 
+    // Determine resource type based on file MIME type
+    let resourceType = 'auto';
+    if (file.mimetype === 'application/pdf') {
+      resourceType = 'raw'; // PDFs should be uploaded as raw files
+    } else if (file.mimetype.startsWith('image/')) {
+      resourceType = 'image';
+    } else if (file.mimetype.startsWith('video/')) {
+      resourceType = 'video';
+    }
+
     // Upload to Cloudinary using upload_stream
     await new Promise((resolve, reject) => {
+      const uploadOptions = {
+        resource_type: resourceType,
+        folder: 'uniprep-copilot', // Optional: organize files in a folder
+        tags: tags,
+        use_filename: true,
+        unique_filename: true
+      };
+
+      // For PDFs, add additional options
+      if (resourceType === 'raw') {
+        uploadOptions.format = 'pdf';
+      }
+
       cloudinary.uploader
         .upload_stream(
-          {
-            resource_type: 'auto', // Automatically detect image, video, raw, etc.
-            folder: 'uniprep-copilot', // Optional: organize files in a folder
-            tags: tags,
-            use_filename: true,
-            unique_filename: true
-          },
+          uploadOptions,
           (error, uploadResult) => {
             if (error) {
               console.error('Cloudinary upload error:', error.message);
@@ -48,16 +65,19 @@ export const uploadFromBrowser = async (req, res) => {
               // Log success without exposing full URL in production
               if (process.env.NODE_ENV === 'development') {
                 console.log('✓ File uploaded successfully to Cloudinary');
+                console.log('Resource type:', resourceType, 'Format:', uploadResult.format);
               }
               resolve(uploadResult);
               res.status(200).json({
                 url: uploadResult.secure_url,
                 public_id: uploadResult.public_id,
                 format: uploadResult.format,
+                resource_type: uploadResult.resource_type,
                 width: uploadResult.width,
                 height: uploadResult.height,
                 bytes: uploadResult.bytes,
-                created_at: uploadResult.created_at
+                created_at: uploadResult.created_at,
+                mime_type: file.mimetype
               });
             }
           }

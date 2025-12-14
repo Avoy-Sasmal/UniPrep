@@ -11,9 +11,20 @@ const buildRefreshToken = (payload) =>
   });
 
 export const generateTokens = (payload) => {
-  const accessToken = buildAccessToken(payload);
-  const refreshToken = buildRefreshToken(payload);
-  return { accessToken, refreshToken };
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET is not configured in environment variables');
+  }
+  if (!process.env.JWT_REFRESH_SECRET) {
+    throw new Error('JWT_REFRESH_SECRET is not configured in environment variables');
+  }
+  try {
+    const accessToken = buildAccessToken(payload);
+    const refreshToken = buildRefreshToken(payload);
+    return { accessToken, refreshToken };
+  } catch (error) {
+    console.error('Token generation failed:', error);
+    throw new Error(`Failed to generate tokens: ${error.message}`);
+  }
 };
 
 export const verifyAccessToken = (token) =>

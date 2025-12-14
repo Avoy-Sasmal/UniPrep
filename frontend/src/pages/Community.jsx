@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft, Cloud, Loader2 } from 'lucide-react';
+import { ThumbsUp, MessageCircle, Eye, Plus, X, ArrowLeft, Cloud, Loader2, Trash2 } from 'lucide-react';
 import api from '../services/api';
 import { Link } from 'react-router-dom';
 import useAuthStore from '../store/authStore';
@@ -159,6 +159,23 @@ const Community = () => {
     }
   };
 
+  const handleDeletePost = async (postId, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!window.confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/community/posts/${postId}`);
+      fetchPosts();
+    } catch (error) {
+      console.error('Delete post error:', error);
+      alert(error.response?.data?.message || 'Failed to delete post');
+    }
+  };
+
   return (
     <div className="space-y-4">
         <div className="flex items-center justify-between">
@@ -214,37 +231,58 @@ const Community = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
-              {posts.map((post) => (
-                <Link
-                  key={post._id}
-                  to={`/community/${post._id}`}
-                  className="bg-white rounded-xl p-5 shadow hover:shadow-lg transition"
-                >
-                  <div className="flex justify-between mb-2 text-sm">
-                    <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                      {typeLabels[post.type]}
-                    </span>
-                    <span className="flex items-center gap-1 text-gray-500">
-                      <Eye size={14} /> {post.viewCount}
-                    </span>
+              {posts.map((post) => {
+                // Check if current user owns this post
+                const postUserId = post.userId?._id || post.userId;
+                const currentUserId = user?.id || user?._id;
+                const isOwner = user && postUserId && postUserId.toString() === currentUserId?.toString();
+                return (
+                  <div
+                    key={post._id}
+                    className="bg-white rounded-xl p-5 shadow hover:shadow-lg transition relative"
+                  >
+                    <Link
+                      to={`/community/${post._id}`}
+                      className="block"
+                    >
+                      <div className="flex justify-between items-start mb-2 text-sm">
+                        <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded">
+                          {typeLabels[post.type]}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="flex items-center gap-1 text-gray-500">
+                            <Eye size={14} /> {post.viewCount}
+                          </span>
+                          {isOwner && (
+                            <button
+                              onClick={(e) => handleDeletePost(post._id, e)}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition"
+                              title="Delete post"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                      <h3 className="font-semibold text-lg mb-1">{post.title}</h3>
+                      <p className="text-sm text-gray-600 mb-2">
+                        {post.metadata.university} • {post.metadata.branch} • Sem {post.metadata.semester}
+                      </p>
+                      <p className="text-sm text-gray-500 mb-4">
+                        {post.metadata.subject} • {post.metadata.topic}
+                      </p>
+                      <div className="flex gap-4 text-sm text-gray-600">
+                        <span className="flex items-center gap-1">
+                          <ThumbsUp size={14} /> {post.upvotes}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MessageCircle size={14} /> Comments
+                        </span>
+                      </div>
+                    </Link>
                   </div>
-                  <h3 className="font-semibold text-lg mb-1">{post.title}</h3>
-                  <p className="text-sm text-gray-600 mb-2">
-                    {post.metadata.university} • {post.metadata.branch} • Sem {post.metadata.semester}
-                  </p>
-                  <p className="text-sm text-gray-500 mb-4">
-                    {post.metadata.subject} • {post.metadata.topic}
-                  </p>
-                  <div className="flex gap-4 text-sm text-gray-600">
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp size={14} /> {post.upvotes}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle size={14} /> Comments
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -353,19 +391,36 @@ const Community = () => {
                   </div>
                   {formData.cloudinaryUrl && (
                     <div className="p-2 bg-green-50 border border-green-200 rounded-md">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-2">
                         <p className="text-sm text-green-700">
                           ✓ File uploaded to Cloudinary
                         </p>
                         <button
                           type="button"
-                          onClick={() => window.open(formData.cloudinaryUrl, '_blank')}
+                          onClick={() => {
+                            const isPDF = formData.cloudinaryUrl.toLowerCase().includes('.pdf') || formData.cloudinaryUrl.includes('format=pdf');
+                            if (isPDF) {
+                              // Open PDF in new tab with viewer
+                              window.open(formData.cloudinaryUrl, '_blank');
+                            } else {
+                              window.open(formData.cloudinaryUrl, '_blank');
+                            }
+                          }}
                           className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex items-center gap-1"
                         >
                           <Eye size={14} />
                           View
                         </button>
                       </div>
+                      {formData.file && formData.file.type === 'application/pdf' && (
+                        <div className="mt-2">
+                          <iframe
+                            src={formData.cloudinaryUrl}
+                            className="w-full h-64 border border-gray-300 rounded"
+                            title="PDF Preview"
+                          />
+                        </div>
+                      )}
                     </div>
                   )}
                   {formData.file && !formData.cloudinaryUrl && (

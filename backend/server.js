@@ -1,3 +1,7 @@
+import dotenv from 'dotenv';
+// Load environment variables FIRST before any other imports
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
@@ -12,9 +16,7 @@ import quizRoutes from './routes/quiz.js';
 import sessionRoutes from './routes/sessions.js';
 import communityRoutes from './routes/community.js';
 import cloudinaryRoutes from './routes/cloudinary.js';
-import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -28,6 +30,15 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Validate required environment variables
+const requiredEnvVars = ['MONGO_URI', 'JWT_SECRET', 'JWT_REFRESH_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+if (missingEnvVars.length > 0) {
+  console.error('❌ Missing required environment variables:', missingEnvVars.join(', '));
+  console.error('Please check your .env file in the backend directory.');
+  process.exit(1);
+}
 
 // MongoDB Connection
 connectDB();
