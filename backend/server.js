@@ -22,9 +22,30 @@ const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
+const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    "https://uni-prep-xi.vercel.app",
+    "http://localhost:3000",
+].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
+
+// CORS (credentials + strict origin)
 const corsOptions = {
-  origin: process.env.CLIENT_URL?.split(',').map((o) => o.trim()).filter(Boolean) || ['http://localhost:3000'],
-  credentials: true
+    origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+
+        // Normalize origin by removing trailing slash
+        const normalizedOrigin = origin.replace(/\/$/, '');
+
+        if (allowedOrigins.includes(normalizedOrigin) || /\.vercel\.app$/.test(normalizedOrigin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("CORS not allowed for origin: " + origin));
+        }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
