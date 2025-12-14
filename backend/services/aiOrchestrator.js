@@ -4,6 +4,10 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { readFileSync } from 'fs';
+import dotenv from 'dotenv';
+dotenv.config();  
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -11,9 +15,8 @@ const __dirname = dirname(__filename);
 // Check if .env file exists
 const envPath = join(__dirname, '..', '.env');
 const envExists = existsSync(envPath);
-
 // Validate API key on startup
-let API_KEY ="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";
+let API_KEY = process.env.OPENROUTER_API_KEY;
 
 // Trim whitespace if key exists
 if (API_KEY) {
@@ -174,6 +177,7 @@ export async function testAPIKey() {
     console.log('[API Test] Testing API key...');
     
     // Test with a simple streaming request
+    // Following OpenRouter SDK pattern exactly
     const stream = await openrouter.chat.send({
       model: "openai/gpt-oss-20b:free",
       messages: [{ role: "user", content: "Say 'test' if you can read this." }],
@@ -186,11 +190,21 @@ export async function testAPIKey() {
     
     // Collect the streamed response
     let hasContent = false;
+    let testUsage = null;
     for await (const chunk of stream) {
-      const content = chunk.choices?.[0]?.delta?.content;
+      const content = chunk.choices[0]?.delta?.content;
       if (content) {
         hasContent = true;
-        break; // We just need to know it works
+        // Don't break immediately, wait for usage info
+      }
+      
+      // Usage information comes in the final chunk
+      if (chunk.usage) {
+        testUsage = chunk.usage;
+        if (testUsage.reasoningTokens) {
+          console.log("\nReasoning tokens:", testUsage.reasoningTokens);
+        }
+        break; // Once we get usage, we're done
       }
     }
     
@@ -279,6 +293,7 @@ export async function chat(messages, options = {}) {
     }
     
     // Use streaming to get the response, then collect it
+    // Following OpenRouter SDK pattern exactly as per documentation
     const stream = await openrouter.chat.send({
       model,
       messages,
@@ -293,8 +308,9 @@ export async function chat(messages, options = {}) {
     let fullResponse = "";
     let usage = null;
     
+    // Stream the response to get reasoning tokens in usage
     for await (const chunk of stream) {
-      const content = chunk.choices?.[0]?.delta?.content;
+      const content = chunk.choices[0]?.delta?.content;
       if (content) {
         fullResponse += content;
       }
@@ -302,6 +318,10 @@ export async function chat(messages, options = {}) {
       // Usage information comes in the final chunk
       if (chunk.usage) {
         usage = chunk.usage;
+        // Log reasoning tokens if available (for debugging)
+        if (process.env.NODE_ENV === 'development' && chunk.usage.reasoningTokens) {
+          console.log("\nReasoning tokens:", chunk.usage.reasoningTokens);
+        }
       }
     }
     
@@ -363,25 +383,11 @@ export async function chat(messages, options = {}) {
       }
       throw new Error(detailedMsg);
     } else if (status === 429) {
-      // Check for specific rate limit messages
-      if (errorMessage.includes('free-models-per-day') || errorMessage.includes('per-day')) {
-        const detailedMsg = `Daily rate limit exceeded for free tier models.\n\n` +
-          `Your OpenRouter account has reached the daily limit for free model requests.\n\n` +
-          `SOLUTIONS:\n` +
-          `1. Wait until tomorrow - the limit resets daily\n` +
-          `2. Add 10 credits to your account to unlock 1000 free model requests per day:\n` +
-          `   - Go to https://openrouter.ai/\n` +
-          `   - Sign in to your account\n` +
-          `   - Add at least 10 credits\n` +
-          `   - This unlocks 1000 free requests per day\n\n` +
-          `3. Use a paid model instead (if you have credits):\n` +
-          `   - Set OPENROUTER_MODEL in backend/.env to a paid model\n` +
-          `   - Example: OPENROUTER_MODEL=openai/gpt-3.5-turbo\n\n` +
-          `Current API Key: ${API_KEY.substring(0, 15)}...${API_KEY.substring(API_KEY.length - 4)}\n` +
-          `Check your account status at: https://openrouter.ai/`;
-        throw new Error(detailedMsg);
+      const errorMsg = errorMessage || '';
+      if (errorMsg.includes('free-models-per-day') || errorMsg.includes('per-day')) {
+        throw new Error('Daily rate limit exceeded for free tier. The limit will reset tomorrow. You can also add 10 credits to unlock 1000 free model requests per day at https://openrouter.ai/');
       }
-      throw new Error(`OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.\n\nError: ${errorMessage}`);
+      throw new Error('OpenRouter API rate limit exceeded. Please try again later or upgrade your plan.');
     } else if (status === 402) {
       throw new Error('OpenRouter API: Insufficient credits. Please add credits to your account at https://openrouter.ai/');
     } else if (status === 400) {
