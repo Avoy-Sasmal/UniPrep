@@ -4,10 +4,6 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { existsSync } from 'fs';
 import { readFileSync } from 'fs';
-import dotenv from 'dotenv';
-dotenv.config();
-
-
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -195,16 +191,7 @@ export async function testAPIKey() {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
         hasContent = true;
-        // Don't break immediately, wait for usage info
-      }
-
-      // Usage information comes in the final chunk
-      if (chunk.usage) {
-        testUsage = chunk.usage;
-        if (testUsage.reasoningTokens) {
-          console.log("\nReasoning tokens:", testUsage.reasoningTokens);
-        }
-        break; // Once we get usage, we're done
+        break; // We just need to know it works
       }
     }
 
@@ -307,8 +294,7 @@ export async function chat(messages, options = {}) {
     // Collect the streamed response
     let fullResponse = "";
     let usage = null;
-
-    // Stream the response to get reasoning tokens in usage
+    
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content;
       if (content) {
