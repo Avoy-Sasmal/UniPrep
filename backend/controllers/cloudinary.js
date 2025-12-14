@@ -37,6 +37,8 @@ export const uploadFromBrowser = async (req, res) => {
       resourceType = 'image';
     } else if (file.mimetype.startsWith('video/')) {
       resourceType = 'video';
+    } else if (file.mimetype.startsWith('audio/')) {
+      resourceType = 'video'; // Cloudinary uses 'video' resource type for audio files
     }
 
     // Upload to Cloudinary using upload_stream
@@ -49,9 +51,17 @@ export const uploadFromBrowser = async (req, res) => {
         unique_filename: true
       };
 
-      // For PDFs, add additional options
+      // For PDFs, add additional options to ensure proper viewing
       if (resourceType === 'raw') {
         uploadOptions.format = 'pdf';
+        // Ensure PDFs are accessible for viewing
+        uploadOptions.access_mode = 'public';
+      }
+      
+      // For videos, ensure they're accessible
+      if (resourceType === 'video') {
+        uploadOptions.access_mode = 'public';
+        uploadOptions.resource_type = 'video';
       }
 
       cloudinary.uploader

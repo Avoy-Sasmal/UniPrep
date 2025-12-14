@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText } from 'lucide-react';
+import { ArrowLeft, ThumbsUp, ThumbsDown, Copy, Eye, FileText, Download } from 'lucide-react';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 
@@ -178,10 +178,15 @@ const PostDetail = () => {
                                  fileUrl.includes('resource_type=raw') ||
                                  (publicIdMatch && publicIdMatch[1].toLowerCase().endsWith('.pdf'));
                     
-                    // For Cloudinary PDFs, use the URL directly or add format parameter
-                    const pdfUrl = isPDF && !fileUrl.includes('.pdf') 
-                      ? `${fileUrl}#page=1` 
-                      : fileUrl;
+                    // For Cloudinary PDFs, ensure the URL is properly formatted
+                    // Cloudinary raw files (PDFs) can be viewed directly
+                    let pdfUrl = fileUrl;
+                    
+                    // If it's a Cloudinary URL but doesn't have .pdf extension, try to add it
+                    if (isPDF && fileUrl.includes('res.cloudinary.com') && !fileUrl.includes('.pdf')) {
+                      // Cloudinary raw files should work as-is, but we can try adding format
+                      pdfUrl = fileUrl;
+                    }
                     
                     return (
                       <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
@@ -194,19 +199,42 @@ const PostDetail = () => {
                         </div>
                         {isPDF ? (
                           <div className="space-y-3">
-                            <iframe
-                              src={pdfUrl}
-                              className="w-full h-96 border border-gray-300 rounded-lg"
-                              title="PDF Viewer"
-                              type="application/pdf"
-                            />
-                            <button
-                              onClick={() => window.open(fileUrl, '_blank')}
-                              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                            >
-                              <Eye size={18} />
-                              Open in New Tab
-                            </button>
+                            {/* Try iframe first, fallback to object tag */}
+                            <div className="w-full h-96 border border-gray-300 rounded-lg overflow-hidden">
+                              <iframe
+                                src={`${pdfUrl}#toolbar=0`}
+                                className="w-full h-full"
+                                title="PDF Viewer"
+                                type="application/pdf"
+                                onError={(e) => {
+                                  // If iframe fails, try object tag
+                                  e.target.style.display = 'none';
+                                  const objectTag = document.createElement('object');
+                                  objectTag.data = pdfUrl;
+                                  objectTag.type = 'application/pdf';
+                                  objectTag.className = 'w-full h-full';
+                                  objectTag.style.display = 'block';
+                                  e.target.parentElement.appendChild(objectTag);
+                                }}
+                              />
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => window.open(fileUrl, '_blank')}
+                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                              >
+                                <Eye size={18} />
+                                Open in New Tab
+                              </button>
+                              <a
+                                href={fileUrl}
+                                download
+                                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                              >
+                                <Download size={18} />
+                                Download PDF
+                              </a>
+                            </div>
                           </div>
                         ) : (
                           <button

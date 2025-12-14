@@ -354,7 +354,7 @@ const Community = () => {
                   <div className="flex gap-2">
                     <input
                       type="file"
-                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png"
+                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv,.webm,.mp3,.wav,.m4v"
                       onChange={(e) => {
                         const selectedFile = e.target.files[0];
                         if (selectedFile) {

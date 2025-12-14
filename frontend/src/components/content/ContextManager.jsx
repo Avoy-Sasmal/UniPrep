@@ -103,12 +103,36 @@ const ContextManager = ({ subjectId }) => {
   };
 
   const handleViewFile = (context) => {
-    // If it's a Cloudinary URL, open it directly
+    let fileUrl = null;
+    
+    // Extract URL from context
     if (context.fileUrl && context.fileUrl.startsWith('http')) {
-      window.open(context.fileUrl, '_blank');
+      fileUrl = context.fileUrl;
     } else if (context.content && context.content.startsWith('http')) {
-      // Content might be a URL
-      window.open(context.content, '_blank');
+      fileUrl = context.content;
+    } else if (context.content && context.content.includes('[Cloudinary File]')) {
+      // Extract Cloudinary URL from content string
+      const urlMatch = context.content.match(/URL:\s*(https?:\/\/[^\s]+)/);
+      if (urlMatch) {
+        fileUrl = urlMatch[1];
+      }
+    }
+    
+    if (fileUrl) {
+      // Check if it's a PDF - Cloudinary raw files need special handling
+      const isPDF = fileUrl.toLowerCase().includes('.pdf') || 
+                   fileUrl.includes('format=pdf') || 
+                   fileUrl.includes('resource_type=raw') ||
+                   (context.content && context.content.toLowerCase().includes('pdf'));
+      
+      if (isPDF) {
+        // For PDFs, try to open in new tab with proper viewer
+        // Cloudinary raw files can be viewed directly
+        window.open(fileUrl, '_blank');
+      } else {
+        // For other files, open directly
+        window.open(fileUrl, '_blank');
+      }
     } else {
       // Show content in a modal or new page
       alert('File content:\n\n' + context.content.substring(0, 500) + (context.content.length > 500 ? '...' : ''));
@@ -261,13 +285,13 @@ const ContextManager = ({ subjectId }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Upload File (PDF/Text/Images) or Enter Content
+                  Upload File (PDF/Text/Images/Videos) or Enter Content
                 </label>
                 <div className="space-y-2">
                   <div className="flex gap-2">
                     <input
                       type="file"
-                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png"
+                      accept=".pdf,.txt,.doc,.docx,.jpg,.jpeg,.png,.mp4,.avi,.mov,.mkv,.webm,.mp3,.wav,.m4v"
                       onChange={(e) => {
                         const selectedFile = e.target.files[0];
                         if (selectedFile) {
@@ -301,19 +325,67 @@ const ContextManager = ({ subjectId }) => {
                   </div>
                   {cloudinaryUrl && (
                     <div className="p-2 bg-green-50 border border-green-200 rounded-md">
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between mb-2">
                         <p className="text-sm text-green-700">
                           ✓ File uploaded to Cloudinary
                         </p>
                         <button
                           type="button"
-                          onClick={() => window.open(cloudinaryUrl, '_blank')}
+                          onClick={() => {
+                            const isPDF = file && file.type === 'application/pdf';
+                            const isVideo = file && file.type.startsWith('video/');
+                            
+                            if (isPDF) {
+                              // For PDFs, ensure we use the correct URL format
+                              // Cloudinary raw files can be viewed directly
+                              window.open(cloudinaryUrl, '_blank');
+                            } else if (isVideo) {
+                              // For videos, open in new tab
+                              window.open(cloudinaryUrl, '_blank');
+                            } else {
+                              window.open(cloudinaryUrl, '_blank');
+                            }
+                          }}
                           className="px-3 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700 flex items-center gap-1"
                         >
                           <Eye size={14} />
                           View
                         </button>
                       </div>
+                      {file && file.type === 'application/pdf' && (
+                        <div className="mt-2">
+                          <div className="w-full h-64 border border-gray-300 rounded overflow-hidden">
+                            <iframe
+                              src={`${cloudinaryUrl}#toolbar=0`}
+                              className="w-full h-full"
+                              title="PDF Preview"
+                              onError={(e) => {
+                                // Fallback: show message if iframe fails
+                                e.target.parentElement.innerHTML = `
+                                  <div class="p-4 text-center text-gray-600">
+                                    <p>PDF preview not available. Click "View" to open in new tab.</p>
+                                    <a href="${cloudinaryUrl}" target="_blank" class="text-blue-600 hover:underline mt-2 inline-block">
+                                      Open PDF
+                                    </a>
+                                  </div>
+                                `;
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      {file && file.type.startsWith('video/') && (
+                        <div className="mt-2">
+                          <video
+                            src={cloudinaryUrl}
+                            controls
+                            className="w-full max-h-64 rounded"
+                            title="Video Preview"
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                        </div>
+                      )}
                     </div>
                   )}
                   {file && !cloudinaryUrl && (
