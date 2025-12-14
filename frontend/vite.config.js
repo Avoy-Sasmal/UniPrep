@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       '/api': {
         // Try port 5000 first (as per backend .env), fallback to 8000
-        target: 'http://localhost:5000',
+        target: 'https://uniprep-o34s.onrender.com/',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api')
