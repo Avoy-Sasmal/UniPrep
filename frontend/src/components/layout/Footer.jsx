@@ -19,7 +19,7 @@ const Footer = () => {
             </p>
             <div className="flex space-x-4">
               <a 
-                href="https://github.com" 
+                href="https://github.com/Avoy-Sasmal/UniPrep" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-gray-400 hover:text-white transition-colors"
@@ -28,7 +28,7 @@ const Footer = () => {
                 <Github className="h-6 w-6" />
               </a>
               <a 
-                href="https://twitter.com" 
+                href="https://x.com/Amritanshutwt" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-gray-400 hover:text-white transition-colors"
@@ -37,7 +37,7 @@ const Footer = () => {
                 <Twitter className="h-6 w-6" />
               </a>
               <a 
-                href="https://linkedin.com" 
+                href="https://www.linkedin.com/in/avoy-sasmal/" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-gray-400 hover:text-white transition-colors"
@@ -107,16 +107,16 @@ const Footer = () => {
             <p className="text-gray-300 mb-4 text-sm">
               If you want to support this project by becoming a sponsor or want to contribute, just ping us on{' '}
               <a 
-                href="https://twitter.com" 
+                href="https://x.com/Amritanshutwt" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-blue-400 hover:text-white transition-colors font-bold"
               >
-                Twitter
+                Twitter/X
               </a>
               . Want to make this project better or advance its features?{' '}
               <a 
-                href="https://github.com" 
+                href="https://github.com/Avoy-Sasmal/UniPrep" 
                 target="_blank" 
                 rel="noopener noreferrer" 
                 className="text-blue-400 hover:text-white transition-colors font-bold"
