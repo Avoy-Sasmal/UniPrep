@@ -17,18 +17,18 @@
 
 ---
 
-## 📖 Overview
+##  Overview
 
 **UniPrep Copilot** is an intelligent academic companion that leverages AI to help university students excel in their studies. Upload your syllabus, past papers, and notes—then let AI generate personalized study materials, exam prep resources, and revision plans tailored to your university, branch, and answer style preferences.
 
-## ✨ Features
+##  Features
 
-### 🎓 Academic Intelligence
+###  Academic Intelligence
 - **University-Aware Context**: Specify university, college, branch, semester, and subjects
 - **Smart Content Upload**: Upload syllabus PDFs, past year papers, notes, and reference materials
 - **Context-Driven Generation**: AI analyzes your uploaded materials for accurate, relevant content
 
-### 📝 AI-Powered Content Generation
+###  AI-Powered Content Generation
 - **Study Notes**: Auto-generate comprehensive notes from topics
 - **Academic Reports**: Create well-structured reports with proper formatting
 - **PPT Content**: Generate presentation-ready slide content
@@ -37,23 +37,23 @@
 - **Rapid Revision Sheets**: Quick-reference study materials
 - **Mock Papers**: AI-generated practice papers based on PYQs
 
-### 🎨 Personalization
+###  Personalization
 - **Answer Style Profiles**: Create custom writing styles (concise, detailed, academic, etc.)
 - **Style Templates**: Choose from preset styles or build your own
 - **Adaptive Formatting**: Tone, structure, and word count customization
 
-### 👥 Community Features
+###  Community Features
 - **Content Sharing**: Share and discover study materials from peers
 - **Discussion Forums**: Engage with fellow students
 - **Upvote/Downvote System**: Community-curated content quality
 
-### 📊 Progress Tracking
+###  Progress Tracking
 - **Study Analytics**: Track study time, topics covered, and progress
 - **Quiz System**: Test your knowledge with auto-generated quizzes
 - **Focus Mode**: Distraction-free study sessions with timer
 - **Study Streaks**: Maintain daily study momentum
 
-## 🎬 Demo
+##  Demo
 
 ### Landing Page
 <div align="center">
@@ -70,7 +70,7 @@
   <img src="frontend/public/Dashboard.png" alt="Dashboard" width="100%">
 </div>
 
-## 🚀 Installation
+## Installation
 
 ### Prerequisites
 
@@ -152,7 +152,7 @@ Before you begin, ensure you have the following installed:
    - Frontend: [http://localhost:5173](http://localhost:5173)
    - Backend API: [http://localhost:5000/api](http://localhost:5000/api)
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 ### Frontend
 | Technology | Version | Purpose |
@@ -183,7 +183,7 @@ Before you begin, ensure you have the following installed:
 - **OpenRouter**: Multi-model AI gateway (GPT-4, Claude, Gemini, etc.)
 - **Cloudinary**: Media management (optional)
 
-## 📁 Project Structure
+##  Project Structure
 
 ```
 uniprep-copilot/
@@ -290,7 +290,7 @@ uniprep-copilot/
 └── README.md
 ```
 
-## 📚 Documentation
+## Documentation
 
 ### API Endpoints
 
@@ -399,7 +399,7 @@ uniprep-copilot/
 }
 ```
 
-## 🎯 Usage Guide
+##  Usage Guide
 
 ### 1. Getting Started
 1. **Sign up** and complete your profile
@@ -428,7 +428,7 @@ uniprep-copilot/
 3. Enter distraction-free full-screen mode
 4. Track study time automatically
 
-## 🔒 Environment Variables
+##  Environment Variables
 
 ### Required Variables
 
@@ -447,7 +447,7 @@ uniprep-copilot/
 | `OPENROUTER_MODEL` | AI model to use | `openai/gpt-4o-mini` |
 | `CLOUDINARY_*` | Cloudinary credentials | N/A |
 
-## 🚧 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
@@ -483,7 +483,7 @@ Error: File too large
 - Check file size and format (PDF recommended)
 - Ensure `multer` middleware is properly configured
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -500,11 +500,11 @@ Contributions are welcome! Please follow these steps:
 - Update documentation for new features
 - Test thoroughly before submitting PR
 
-## 📄 License
+##  License
 
 This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
-## 👥 Contributors
+##  Contributors
 
 Thanks to these wonderful people who have contributed to this project:
 
@@ -542,7 +542,7 @@ Thanks to these wonderful people who have contributed to this project:
    ```
 3. Create a Pull Request
 
-## 🙏 Acknowledgments
+##  Acknowledgments
 
 - OpenRouter for AI infrastructure
 - MongoDB for database solutions
@@ -550,11 +550,11 @@ Thanks to these wonderful people who have contributed to this project:
 - Tailwind CSS for styling framework
 - All contributors and testers
 
-## 📞 Support
+<!-- ## 📞 Support
 
-For support, email support@uniprep.com or join our Discord community.
+For support, email support@uniprep.com or join our Discord community. -->
 
-## 🗺️ Roadmap
+<!-- ## 🗺️ Roadmap
 
 - [ ] Mobile app (React Native)
 - [ ] Offline mode with local storage
@@ -564,7 +564,7 @@ For support, email support@uniprep.com or join our Discord community.
 - [ ] Spaced repetition system
 - [ ] Integration with university LMS
 - [ ] Video lecture summarization
-- [ ] Multi-language support
+- [ ] Multi-language support -->
 
 ---
 
