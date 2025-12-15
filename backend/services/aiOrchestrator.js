@@ -40,25 +40,25 @@ if (API_KEY) {
         if (testResult.valid) {
           console.log('✓ OpenRouter API key verified and working');
         } else {
-          console.error('\n❌ OpenRouter API key test FAILED:');
+          console.error('\n OpenRouter API key test FAILED:');
           console.error(`   Error: ${testResult.error}`);
 
           // Show diagnostics if available
           if (testResult.diagnostics) {
-            console.error('\n📊 Key Diagnostics:');
+            console.error('\n Key Diagnostics:');
             console.error(`   Length: ${testResult.diagnostics.keyLength} characters`);
             console.error(`   Starts with: ${testResult.diagnostics.keyPrefix}...`);
             if (testResult.diagnostics.hasSpaces) {
-              console.error('   ⚠️  Key contains SPACES - remove them!');
+              console.error('     Key contains SPACES - remove them!');
             }
             if (testResult.diagnostics.hasQuotes) {
-              console.error('   ⚠️  Key contains QUOTES - remove them from .env file!');
+              console.error('     Key contains QUOTES - remove them from .env file!');
             }
             if (!testResult.diagnostics.startsWithCorrectPrefix) {
-              console.error('   ⚠️  Key format looks wrong - should start with "sk-or-v1-" or "sk-"');
+              console.error('     Key format looks wrong - should start with "sk-or-v1-" or "sk-"');
             }
             if (testResult.diagnostics.keyLength < 50) {
-              console.error('   ⚠️  Key is too short - you may not have copied the entire key!');
+              console.error('     Key is too short - you may not have copied the entire key!');
             }
           }
 
@@ -69,7 +69,7 @@ if (API_KEY) {
             console.error(`   API Response: ${testResult.detailedError}`);
           }
 
-          console.error('\n🔧 How to Fix:');
+          console.error('\n How to Fix:');
           console.error('   1. Go to https://openrouter.ai/keys');
           console.error('   2. Sign in (or create free account)');
           console.error('   3. Delete old keys and create a NEW one');
@@ -80,14 +80,14 @@ if (API_KEY) {
           console.error('\n   See backend/DEBUG_API_KEY.md for detailed debugging steps\n');
         }
       } catch (err) {
-        console.warn('⚠️  Could not test API key on startup:', err.message);
+        console.warn('  Could not test API key on startup:', err.message);
       }
     }, 2000); // Wait 2 seconds after server starts
   } catch (error) {
-    console.error('❌ Failed to initialize OpenRouter client:', error.message);
+    console.error(' Failed to initialize OpenRouter client:', error.message);
   }
 } else {
-  console.error('\n❌ ERROR: OPENROUTER_API_KEY not found in environment variables.');
+  console.error('\n ERROR: OPENROUTER_API_KEY not found in environment variables.');
   if (!envExists) {
     console.error(`   .env file not found at: ${envPath}`);
     console.error('   Please create a .env file in the backend directory.');
@@ -336,7 +336,7 @@ export async function chat(messages, options = {}) {
       errorMessage = errorData?.error?.message || error.message;
     }
 
-    console.error('\n❌ OpenRouter API Error:');
+    console.error('\n OpenRouter API Error:');
     if (status) {
       console.error(`   Status: ${status}`);
     }
@@ -467,7 +467,7 @@ Requirements:
 4. Ensure content aligns with the syllabus provided
 ${styleProfile.maxWordCount ? `5. Word count should be approximately ${styleProfile.maxWordCount}` : ''}
 
-${customPrompt && customPrompt.trim() ? `\n⚠️ IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
+${customPrompt && customPrompt.trim() ? `\n IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
 
 Output format as JSON:
 {
@@ -600,7 +600,7 @@ Requirements:
 4. Follow ${styleProfile.tone} tone
 5. Structure should be logical flow
 
-${customPrompt && customPrompt.trim() ? `\n⚠️ IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
+${customPrompt && customPrompt.trim() ? `\n IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
 
 Output format as JSON:
 {
