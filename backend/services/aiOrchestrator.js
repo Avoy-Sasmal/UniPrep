@@ -532,7 +532,7 @@ Requirements:
 3. Use academic citation style
 4. Ensure methodology aligns with subject requirements
 
-${customPrompt && customPrompt.trim() ? `\n⚠️ IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
+${customPrompt && customPrompt.trim() ? `\n IMPORTANT - USER-SPECIFIED REQUIREMENTS (MUST FOLLOW):\n${customPrompt}\n\nThese instructions are CRITICAL and must be strictly adhered to in the generated content.\n` : ''}
 
 Output format as JSON:
 {

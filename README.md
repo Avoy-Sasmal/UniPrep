@@ -550,6 +550,7 @@ Thanks to these wonderful people who have contributed to this project:
 - Tailwind CSS for styling framework
 - All contributors and testers
 
+<<<<<<< HEAD
 <!-- ## 📞 Support
 
 For support, email support@uniprep.com or join our Discord community. -->
@@ -565,6 +566,8 @@ For support, email support@uniprep.com or join our Discord community. -->
 - [ ] Integration with university LMS
 - [ ] Video lecture summarization
 - [ ] Multi-language support -->
+=======
+>>>>>>> 4db8516 (resolve the loading issue)
 
 ---
 
