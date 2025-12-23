@@ -25,7 +25,7 @@ const PORT = process.env.PORT || 8000;
 // Middleware
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  "https://uni-prep-xi.vercel.app",
+  "uni-prep-nyvz.vercel.app/",
   "http://localhost:3000",
 ].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
 
