@@ -5,6 +5,7 @@ dotenv.config();
 import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
+import rateLimit from "express-rate-limit";
 import authRoutes from './routes/auth.js';
 import userRoutes from './routes/users.js';
 import subjectRoutes from './routes/subjects.js';
@@ -23,29 +24,29 @@ const PORT = process.env.PORT || 8000;
 
 // Middleware
 const allowedOrigins = [
-    process.env.FRONTEND_URL,
-    "https://uni-prep-xi.vercel.app",
-    "http://localhost:3000",
+  process.env.FRONTEND_URL,
+  "https://uni-prep-xi.vercel.app",
+  "http://localhost:3000",
 ].filter(Boolean).map(url => url.replace(/\/$/, '')); // Remove trailing slashes
 
 // CORS (credentials + strict origin)
 const corsOptions = {
-    origin: (origin, callback) => {
-        if (!origin) return callback(null, true);
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-        // Normalize origin by removing trailing slash
-        const normalizedOrigin = origin.replace(/\/$/, '');
+    // Normalize origin by removing trailing slash
+    const normalizedOrigin = origin.replace(/\/$/, '');
 
-        if (allowedOrigins.includes(normalizedOrigin) || /\.vercel\.app$/.test(normalizedOrigin)) {
-            callback(null, true);
-        } else {
-            callback(new Error("CORS not allowed for origin: " + origin));
-        }
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-    optionsSuccessStatus: 204,
+    if (allowedOrigins.includes(normalizedOrigin) || /\.vercel\.app$/.test(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS not allowed for origin: " + origin));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 204,
 };
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
@@ -63,6 +64,17 @@ if (missingEnvVars.length > 0) {
 
 // MongoDB Connection
 connectDB();
+
+// Rate limiting
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 70,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many requests, please try again later." },
+});
+app.use('/api/', apiLimiter);
+
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -135,8 +147,8 @@ function pingServer() {
     .catch(err => console.error('Error pinging server:', err.message));
 }
 
-// Ping every 12 minutes (720,000 milliseconds)
-setInterval(pingServer, 60000);
+// Ping every 10 minutes (600,000 milliseconds)
+setInterval(pingServer, 600000);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
